@@ -14,7 +14,7 @@ interface ModuleStatus {
 const MODULES: readonly ModuleStatus[] = [
   { name: '内核来源', detail: 'PluotSorbet @ 46ee3e7（GPL-2.0）+ 本地补丁，源码可重建', phase: 'stage0' },
   { name: '旧版隔离', detail: '第三方网络层与 45 条内置游戏均不迁入', phase: 'stage0' },
-  { name: '运行时适配', detail: '契约与 Mock 实现，9 项契约测试覆盖成功/失败/超时', phase: 'stage0' },
+  { name: '运行时适配', detail: '契约与 Mock 实现，12 项契约测试覆盖成功/失败/超时', phase: 'stage0' },
   { name: '内核接入', detail: '待核心许可问题决策后开始', phase: 'stage1' },
   { name: '输入系统', detail: '未开始', phase: 'stage2plus' },
   { name: '存档系统', detail: '未开始', phase: 'stage2plus' },
@@ -75,9 +75,7 @@ export function App() {
       </section>
 
       <footer className="shell__footer">
-        <span>内核 GPL-2.0，对应源码见 docs/provenance/SOURCES.md</span>
-        <span>·</span>
-        <span>关于页在阶段 4 实现</span>
+        <p>内核 GPL-2.0 · 关于页在阶段 4 实现</p>
       </footer>
     </main>
   )

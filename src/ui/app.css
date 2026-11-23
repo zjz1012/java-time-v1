@@ -131,15 +131,13 @@ body {
 }
 
 .shell__footer {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
+  text-align: center;
   font-size: 12px;
   color: var(--text-dim);
 }
 
-.shell__footer a {
-  color: inherit;
+.shell__footer p {
+  margin: 0;
 }
 
 code {
