@@ -177,11 +177,28 @@ python3 "$HERE/build-main-all.py" "$REPO" bld/main-all.js
 
 # ---------------------------------------------------------------- 7 收集
 echo "== 7/7 收集产物"
-mkdir -p "$ARTIFACTS"
+# 布局由内核的硬编码决定，不能随意改：
+#   main-all.js 里写死了 load("java/classes.data")，而 load() 是相对文档 base 的 XHR。
+#   宿主页用 <base href="../kernel/"> 指向本目录，所以类库必须落在 <本目录>/java/ 下。
+#   见 docs/architecture/kernel-contract.md §4。
+#
+# certs/_main.ks 同理：initFS 会无条件 load(APP_BASE_DIR + "certs/_main.ks")，
+# 少这个文件 initFS 就 reject，start() 永远不执行 —— 症状只是控制台一行
+#   Loading failed: "..."，页面上什么都看不到。
+#
+# style/emoji/ 是第三类：DisplayDevice.gainedForeground0 里等
+#   Promise.all(loadingFGPromises)，emoji 图缺失时 emoji.loaded 永远为 false，
+#   Java 线程就在那个 native 调用上挂住。此时 Canvas 已经创建、前台已经拿到，
+#   但一次 refresh 都不会发生 —— 表现是「启动成功、画面全黑」，最难查的一种。
+mkdir -p "$ARTIFACTS/java" "$ARTIFACTS/certs" "$ARTIFACTS/style"
 cp bld/j2me.js bld/native.js bld/main-all.js "$ARTIFACTS/"
-cp java/classes.jar "$ARTIFACTS/classes.data"
-ls -lh "$ARTIFACTS"/j2me.js "$ARTIFACTS"/native.js "$ARTIFACTS"/main-all.js "$ARTIFACTS"/classes.data
+cp java/classes.jar "$ARTIFACTS/java/classes.data"
+cp certs/_main.ks "$ARTIFACTS/certs/_main.ks"
+cp -R style/emoji "$ARTIFACTS/style/"
+ls -lh "$ARTIFACTS"/j2me.js "$ARTIFACTS"/native.js "$ARTIFACTS"/main-all.js \
+  "$ARTIFACTS"/java/classes.data "$ARTIFACTS"/certs/_main.ks
+echo "   style/emoji: $(ls "$ARTIFACTS/style/emoji"/*.png 2>/dev/null | wc -l | tr -d ' ') 个 PNG"
 
 echo "== 完成。校验值："
-( command -v md5 >/dev/null && md5 -q "$ARTIFACTS"/*.js "$ARTIFACTS"/classes.data ) \
-  || md5sum "$ARTIFACTS"/*.js "$ARTIFACTS"/classes.data
+( command -v md5 >/dev/null && md5 -q "$ARTIFACTS"/*.js "$ARTIFACTS"/java/classes.data ) \
+  || md5sum "$ARTIFACTS"/*.js "$ARTIFACTS"/java/classes.data

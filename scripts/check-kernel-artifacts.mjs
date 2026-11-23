@@ -19,10 +19,11 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const KERNEL_DIR = join(ROOT, 'public/kernel')
 
 const ARTIFACTS = [
-  { name: 'j2me.js', minBytes: 100_000, mustInclude: ['JVM', 'MIDlet'] },
-  { name: 'native.js', minBytes: 100_000, mustInclude: ['Relooper', 'Module.buffer'] },
-  { name: 'main-all.js', minBytes: 300_000, mustInclude: ['inferMidletClassName'] },
-  { name: 'classes.data', minBytes: 500_000, mustInclude: [] },
+  { name: 'j2me.js', path: 'j2me.js', minBytes: 100_000, mustInclude: ['JVM', 'MIDlet'] },
+  { name: 'native.js', path: 'native.js', minBytes: 100_000, mustInclude: ['Relooper', 'Module.buffer'] },
+  { name: 'main-all.js', path: 'main-all.js', minBytes: 300_000, mustInclude: ['inferMidletClassName'] },
+  // 路径是内核写死的：main-all.js 里 load("java/classes.data")，相对宿主页的 <base>。
+  { name: 'java/classes.data', path: 'java/classes.data', minBytes: 500_000, mustInclude: [] },
 ]
 
 /**
@@ -41,8 +42,27 @@ if (!existsSync(KERNEL_DIR)) {
 const problems = []
 const rows = []
 
+// 旧布局仍在时给出明确提示：内核会按 load("java/classes.data") 请求，放错位置就是 404，
+// 而 404 的表现是 loadingPromises 被 reject —— 页面停在启动层，不报可见错误。
+if (existsSync(join(KERNEL_DIR, 'classes.data'))) {
+  problems.push('检测到旧布局 public/kernel/classes.data，应位于 java/classes.data')
+}
+
+// 这两类资源缺失的症状都不指向自己，所以必须单独检查：
+//   certs/_main.ks 缺失 → initFS reject，start() 不执行，只在控制台留一行 Loading failed；
+//   style/emoji 缺失   → gainedForeground0 里的 Promise.all 永不完成，
+//                        Java 线程挂起，画布一次 refresh 都没有，表现为「启动成功但全黑」。
+for (const [label, rel] of [
+  ['MIDP 证书库', 'certs/_main.ks'],
+  ['emoji 图集', 'style/emoji/emoji0.png'],
+]) {
+  if (!existsSync(join(KERNEL_DIR, rel))) {
+    problems.push(`缺少${label}（${rel}），内核会停在启动阶段且不报可见错误`)
+  }
+}
+
 for (const spec of ARTIFACTS) {
-  const path = join(KERNEL_DIR, spec.name)
+  const path = join(KERNEL_DIR, spec.path)
   if (!existsSync(path)) {
     problems.push(`缺少 ${spec.name}`)
     continue
@@ -94,7 +114,7 @@ let socketTotal = 0
 for (const r of rows) {
   socketTotal += r.sockets
   const extra = r.entries === null ? '' : `  ${r.entries} 个 zip 条目`
-  console.log(`  ${r.name.padEnd(14)} ${String(r.size).padStart(9)} B  sha256:${r.sha}${extra}`)
+  console.log(`  ${r.name.padEnd(18)} ${String(r.size).padStart(9)} B  sha256:${r.sha}${extra}`)
 }
 console.log(`  WebSocket 计数合计：${socketTotal}${socketTotal === 0 ? '（无回连通道）' : '（请确认来源）'}`)
 

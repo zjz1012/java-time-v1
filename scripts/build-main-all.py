@@ -63,6 +63,66 @@ def read_sources(repo):
     return ordered
 
 
+PIPE_OLD = '''if (window.parent !== window) {
+  alert = function(message) {
+    window.parent.DumbPipe.handleEvent({
+      detail: {
+        promptType: "alert",
+        message: message,
+      }
+    });
+  };
+
+  prompt = function(message) {
+    var event = {
+      detail: {
+        promptType: "prompt",
+        message: message,
+        unblock: function() {},
+      }
+    };
+    window.parent.DumbPipe.handleEvent(event);
+    return event.detail.returnValue;
+  };
+}'''
+
+PIPE_NEW = '''if (window.parent !== window) {
+  /* 上游假定父窗口提供 Firefox OS 的 DumbPipe（mozbrowser 时代约定）。
+     现代 Web 没有这个对象，直接取 window.parent.DumbPipe.handleEvent 会抛
+     TypeError，而这段在启动链上，症状是「内核不启动、控制台只有一句话」。
+     没有管道时退化为控制台输出：MIDlet 继续跑，告警不丢，只是不进系统弹窗。 */
+  alert = function(message) {
+    var pipe = window.parent && window.parent.DumbPipe;
+    if (pipe) {
+      pipe.handleEvent({
+        detail: {
+          promptType: "alert",
+          message: message,
+        }
+      });
+    } else {
+      console.warn("[midlet alert] " + message);
+    }
+  };
+
+  prompt = function(message) {
+    var event = {
+      detail: {
+        promptType: "prompt",
+        message: message,
+        unblock: function() {},
+      }
+    };
+    var pipe = window.parent && window.parent.DumbPipe;
+    if (pipe) {
+      pipe.handleEvent(event);
+      return event.detail.returnValue;
+    }
+    return null;
+  };
+}'''
+
+
 def main():
     if len(sys.argv) < 3:
         print(__doc__)
@@ -123,6 +183,11 @@ def main():
         '  function run() {\n'
         '    hideDownloadScreen();\n'
         '    J2ME.Context.setWriters(new J2ME.IndentingWriter());')
+
+    # 补丁 7：父窗口没有 DumbPipe 时不抛错
+    if PIPE_OLD not in js:
+        raise SystemExit('补丁 7 未命中：上游 libs/pipe.js 的父窗口假设段已变化')
+    js = js.replace(PIPE_OLD, PIPE_NEW)
 
     open(out, 'w').write(js)
     print('已生成 %s（%d 字节 / %d 行）' % (out, len(js), js.count('\n') + 1))
