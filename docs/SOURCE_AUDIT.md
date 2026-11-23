@@ -59,22 +59,47 @@ var REMOTE_WS_HOST = "qq.zixing.fun";
 
 ---
 
-## 4. 内置游戏与素材的授权状况
+## 4. 游戏资产的授权状况
 
-`shiwan2/gamelist.js` 实测 **45** 条游戏记录，按 `publisher` 字段统计：
+> **本文档 2026-11-23 15:30 更正**：本节初版把 `shiwan2/gamelist.js` 的 45 条记录误判为
+> 「旧版内置游戏」，并据此得出「V1.0 一律不内置游戏」。该判断错误，原因是**把目录清单
+> 当成了随包内容**。下方为重新核查后的事实。
 
-| 发行商 | 数量 | 发行商 | 数量 |
+### 4.1 旧版（`shiwan2/`）：没有随包游戏
+
+`shiwan2/gamelist.js` 确有 **45** 条记录，`publisher` 字段多为第三方发行商（Gameloft 9、
+Electronic Arts 3、Nokia 2 等）。但这 45 条**只是清单，JAR 并不在包内**：
+
+| 实测项 | 结果 |
+|---|---|
+| `j2me-52emu-feasibility/jars/` 文件数 | **1 个**：`koudai.data`（596 K） |
+| `gamelist.js` 引用的 45 个 `jarName` 在此目录中存在数 | **0 个** |
+| `koudai.data` 实际内容 | MIDlet-Name `口袋灵兽`，Vendor `lxs`，2008-10-14 构建，无任何许可文件 |
+
+**结论（旧版）**：旧版可运行的游戏实际只有一份外来的 2008 年第三方 JAR（`口袋灵兽`），
+来源与授权均不可考，**不迁入新版**；清单里那 44 条从未随包分发。旧版因此不存在
+「内置了几十款商业游戏」的问题，本节初版的表述属于**过度推断**。
+
+### 4.2 可复用资产（`j2me-toy`）：104 款，来源与许可齐全
+
+本项目真正要沿用的是自己那个 Toy 的内置游戏，其来源在
+`j2me-toy/public/licenses/SOURCES.md` 第五节有完整登记：
+
+| 类别 | 款数 | 许可 | 来源 |
 |---|---|---|---|
-| Gameloft | 9 | Disney Mobile | 1 |
-| （空） | 4 | Konami | 1 |
-| Electronic Arts | 3 | Tencent | 1 |
-| zixing | 2 | Alioth / Fonesun / killer / Pyy | 各 1 |
-| Nokia | 2 | PALMLINK / Dchoc / LemonQuest | 各 1 |
-| mob.ua | 2 | Fishlabs / Alawar / LightApp | 各 1 |
-| Mr. Goodliving Ltd | 2 | Real Soft Makers / Digital Chocolate | 各 1 |
-| 其余单件 | 6 | | |
+| 自研（`midlets/src/*.java`） | 6 | 本项目自有 | Breakout / Drop / 2048 / Memory / Snake / Sokoban（另有 `HelloMidlet` 仅作冒烟测试，不进入游戏库） |
+| j2me-100-games | 90 | **MIT** | https://github.com/agneay/j2me-100-games |
+| my-j2me-projects | 7 | **MIT** | https://github.com/pisces312/my-j2me-projects |
+| Shooter | 1 | **MIT** | https://github.com/RehanSaeed/Shooter |
+| **合计** | **104** | | `public/games/*.data` 实测 104 个文件，与登记一致 |
 
-**结论**：除标为 `zixing` 的 2 条外，**43 条为第三方商业发行商的商业作品**，仓库内不存在任何分发授权证明文件。这直接命中规划 §1.3「不内置缺少分发授权的商业游戏 JAR」与 §9「硬性否决项」。V1.0 **一律不内置游戏**，只保留本地 `.jar` 导入。
+三份 MIT 是**各自独立授权**（版权人不同），许可正文已随 `SOURCES.md` 收录。
+MIT 只要求保留版权与许可声明，**允许商用与再分发**，因此这批资产可以整体迁入 V1.0。
+
+**结论（新版）**：V1.0 **可以内置游戏**，范围为「自研 6 款 + 上述 98 款 MIT」。
+需继续遵守的只有一条边界：**不收录任何缺少分发授权的商业 JAR**（规划 §1.3）——
+这与旧版清单无关，是对新增来源的约束。迁移时须把 `SOURCES.md` 第五节的登记与
+MIT 正文一并带入新仓库的 `docs/provenance/`。
 
 ---
 

@@ -132,7 +132,7 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 |---|---|
 | 旧版 `shiwan2/` 全部内容 | 来源不可追溯，见 `docs/SOURCE_AUDIT.md` §6.1 |
 | `qq.zixing.fun` 通道及其实现 | 私有网络层，运营方与合法性均未核实 |
-| 旧版 45 条游戏记录及素材 | 43 条为第三方商业作品，无分发授权 |
+| 旧版 45 条游戏清单与 `jars/koudai.data` | 清单引用的 45 个 JAR 均未随包（实测 `jars/` 仅 1 个文件）；该文件为 2008 年 `口袋灵兽`，Vendor `lxs`，无任何许可文件 |
 | freej2me（GPL-3.0）/ kemulator / ru/woesss | 未纳入自建产物；若将来补回 3D 能力，须重新登记并单独评估 GPL-2.0-only 与 GPL-3.0 的组合问题 |
 
 ---
