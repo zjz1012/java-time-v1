@@ -26,7 +26,12 @@ const USER_FACING: Record<RuntimeErrorCode, string> = {
   PROTOCOL_MISMATCH: '运行组件版本不匹配，请刷新页面后重试。',
   INVALID_TRANSITION: '当前状态不允许这个操作。',
   UNSUPPORTED_CAPABILITY: '当前运行组件不支持这个功能。',
-  TIMEOUT: '操作超时，可能是文件过大或设备性能不足。',
+  /*
+   * 超时要给出所有可能，不能只说「文件过大 / 性能不足」。
+   * 内核遇到无效的包（比如根本不是 JAR）不会报错，它就是永远不出画 ——
+   * 外壳只能等到超时。真凶常常是包本身，不是设备。
+   */
+  TIMEOUT: '启动超时。可能是程序包不完整、文件过大，或设备性能不足。',
   ABORTED: '操作已取消。',
   INTERNAL: '运行组件内部错误。',
 }

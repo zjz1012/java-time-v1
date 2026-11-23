@@ -42,7 +42,12 @@ export interface PluotSorbetRuntimeOptions {
 }
 
 const DEFAULT_READY_TIMEOUT_MS = 10_000
-const DEFAULT_START_TIMEOUT_MS = 30_000
+/*
+ * 30 秒太长了。坏包（非 JAR、或无 MIDlet-1）不会让内核报错，它只是永远不出画 ——
+ * 用户看到的就是一个转不完的圈。15 秒足够真机上冷加载 14MB 内核，
+ * 再久就应该被告知失败，而不是继续等。
+ */
+const DEFAULT_START_TIMEOUT_MS = 15_000
 
 interface Waiter {
   readonly test: (event: HostEvent) => boolean

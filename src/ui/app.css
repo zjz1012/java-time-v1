@@ -151,36 +151,45 @@ code {
 
 /* ---------- 运行页（阶段 1） ---------- */
 
+/*
+ * 整页不滚动：滚动条会让画面在「刚好满屏」和「差 2px」之间反复切换，
+ * 而内核把画面尺寸当物理屏幕，差 2px 就是整屏重排。
+ * 纵向空间不够时由键区的横屏档位让位，不让页面滚起来。
+ */
 .player {
-  max-width: 560px;
+  max-width: 520px;
   margin: 0 auto;
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  gap: 8px;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  overflow: hidden;
 }
 
 .player__bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  min-height: 28px;
 }
 
-.player__meta h1 {
+.player__title {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 15px;
   font-weight: 600;
-}
-
-.player__meta p {
-  margin: 2px 0 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge {
-  display: inline-block;
+  flex: none;
   font-size: 11px;
+  line-height: 1.5;
   padding: 1px 8px;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -203,12 +212,14 @@ code {
 }
 
 .player__exit {
+  flex: none;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--text-dim);
   text-decoration: none;
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 4px 12px;
+  padding: 2px 10px;
   white-space: nowrap;
 }
 
@@ -221,11 +232,13 @@ code {
 /*
  * 运行区的尺寸 **就是** J2ME 屏幕的分辨率：内核读 #display 的
  * clientWidth/clientHeight 当物理屏幕。所以这里不能给 0 高度，
- * 也不能用 aspect-ratio 让它随内容塌陷。
+ * 也不能用 aspect-ratio 让它随内容塌陷 —— 画面必须吃掉键区之外的
+ * 全部空间，键区才不会把画面顶成一条缝。
  */
 .player__stage {
+  position: relative;
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 120px;
   display: grid;
   place-items: center;
 }
@@ -233,38 +246,150 @@ code {
 .player__screen {
   width: 100%;
   height: 100%;
-  max-width: 430px;
   background: #000;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
+/*
+ * 启动遮罩。配色写死成深色而不跟主题走 —— 它盖在黑色画面上，
+ * 浅色主题下用 --surface 会变成一块白板，比黑屏更吓人。
+ */
+.player__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  border-radius: 10px;
+  background: #0b0b0d;
+  color: #9d9a93;
+  font-size: 13px;
+  text-align: center;
+}
+
+.player__overlay-msg {
+  margin: 0;
+  max-width: 30ch;
+  line-height: 1.6;
+  color: #d8d5cf;
+}
+
+.player__overlay-sub {
+  margin: -6px 0 0;
+  font-size: 11px;
+  color: #6d6a66;
+}
+
+.player__overlay-msg--error {
+  color: #d8695c;
+}
+
+.player__retry {
+  padding: 7px 22px;
+  border: 1px solid #3a3a42;
+  border-radius: 999px;
+  background: transparent;
+  color: #d8d5cf;
+  font: 500 13px/1 system-ui, -apple-system, 'PingFang SC', sans-serif;
+  cursor: pointer;
+}
+
+.player__retry:hover {
+  border-color: #5a5a64;
+}
+
+.player__spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #2a2a30;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: player-spin 900ms linear infinite;
+}
+
+@keyframes player-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player__spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* 物理键盘提示在触屏上没有意义 —— 手指用户看不到键盘，那行字只是噪音。 */
 .player__hint {
   margin: 0;
   font-size: 11px;
+  line-height: 1.4;
   color: var(--text-dim);
   text-align: center;
+}
+
+@media (pointer: coarse) {
+  .player__hint {
+    display: none;
+  }
 }
 
 /* ---------- 虚拟键区 ---------- */
 
 .keypad {
+  --pad-size: 56px;
+  --pad-gap: 5px;
+  /* 十字键整块的高度，数字面板复用同一高度，切模式时键区不跳。 */
+  --pad-block: calc(var(--pad-size) * 3 + var(--pad-gap) * 2);
+  flex: none;
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px;
-  align-items: center;
+  gap: 8px;
   /* 触屏上必须关掉滚动与手势：否则按住方向键会变成拖动页面。 */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
 }
 
+/* 软键贴画面底边：游戏自己会在屏幕底部画「左软键撤销 · 右软键重开」，
+ * 位置对不上就得让用户先读字再找按钮。宽度固定、两端对齐，
+ * 拉成两条等分横幅会和方向键抢面积，也不像真机的软键。 */
+.keypad__soft {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.keypad__soft > .pad {
+  width: 112px;
+}
+
+.keypad__main {
+  display: grid;
+  /* 只用两列：三列的话第三列没有子元素、宽度为 0，功能键会被 gap 顶离右边缘 8px。
+   * 十字键靠左、功能键靠右，中间留白 —— 左右手各管一边，拇指不用跨过屏幕中线。 */
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.keypad__slot {
+  /* 宽度必须写死成十字键那一块的尺寸。它落在 grid 的 auto 列里，
+   * 而数字网格的列是 1fr —— 不约束宽度时整块会塌到 min-content，
+   * 数字键挤成几根竖条贴在左边。 */
+  width: calc(var(--pad-size) * 3 + var(--pad-gap) * 2);
+  height: var(--pad-block);
+}
+
 .keypad__dpad {
   display: grid;
-  grid-template-columns: repeat(3, 46px);
-  grid-template-rows: repeat(3, 46px);
-  gap: 6px;
+  grid-template-columns: repeat(3, var(--pad-size));
+  grid-template-rows: repeat(3, var(--pad-size));
+  gap: var(--pad-gap);
 }
 
 .keypad__cell {
@@ -295,18 +420,32 @@ code {
   grid-area: 3 / 2;
 }
 
-.keypad__aux {
+.keypad__num {
   display: grid;
-  gap: 6px;
-  grid-auto-rows: 44px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: var(--pad-gap);
+  height: 100%;
 }
 
-.keypad__num {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
+.keypad__num-cell {
+  display: flex;
 }
+
+.keypad__num-cell > .pad {
+  flex: 1;
+  /* 行高由网格算，基础样式的 44px 下限会把它撑破。 */
+  min-height: 0;
+}
+
+.keypad__tools {
+  display: flex;
+  /* 主区是三列（十字键 / 空白 / 功能键），但只有两个子元素，
+   * 靠 `justify-self` 把自己推到最右，而不是让 1fr 列把它拉宽。 */
+  justify-self: end;
+}
+
+/* ---------- 按键 ---------- */
 
 .pad {
   display: grid;
@@ -324,25 +463,128 @@ code {
 }
 
 .pad--arrow {
-  font-size: 17px;
+  font-size: 18px;
+}
+
+/* 主操作键压一层底色：它和方向键是同一组，但语义不同，
+ * 完全同款会让新用户以为中间那个也是方向。 */
+.pad--fire {
+  background: var(--bg);
+  border-color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+/* 软键和功能键是低频键，边框收淡，不跟方向键抢注意力。 */
+.pad--soft,
+.pad--tool {
+  border-style: dashed;
+  color: var(--text-dim);
+  font-weight: 500;
+  border-radius: 10px;
+}
+
+.pad--soft {
+  min-height: 38px;
+}
+
+.pad--tool {
+  width: calc(var(--pad-size) * 1.6);
+  height: var(--pad-size);
 }
 
 /* 用 --surface 做前景：浅色主题下是白字压深绿，深色主题下是深灰字压浅绿，两个方向都够对比。 */
 .pad--held {
   background: var(--accent);
   border-color: var(--accent);
+  border-style: solid;
   color: var(--surface);
   transform: scale(0.97);
 }
 
+/* 数字模式是「已切走」，不是「按下」，所以用描边而不是反色 ——
+ * 反色会在松手后继续亮着，看起来像卡键。 */
+.pad--tool-on {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .pad--num {
-  min-height: 36px;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
 }
 
 @media (max-width: 380px) {
-  .keypad__dpad {
-    grid-template-columns: repeat(3, 42px);
-    grid-template-rows: repeat(3, 42px);
+  .keypad {
+    --pad-size: 52px;
+  }
+}
+
+/* 横屏手机上高度是稀缺资源，键区缩一档，把空间还给画面。 */
+@media (max-height: 560px) and (orientation: landscape) {
+  .keypad {
+    --pad-size: 46px;
+  }
+
+  .player {
+    max-width: none;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    /* 画面夹在两侧键区中间：横握时左右拇指各在一侧，够得着，
+     * 也不用把手机竖回来。 */
+    grid-template-areas:
+      'bar bar bar'
+      'pad stage aux';
+    gap: 8px;
+    padding: 6px 10px;
+  }
+
+  .player__bar {
+    grid-area: bar;
+  }
+
+  .player__stage {
+    grid-area: stage;
+    min-height: 0;
+  }
+
+  /*
+   * 画面按 3:4 收窄。横屏下宽裕的是宽度、稀缺的是高度 —— 不限宽的话
+   * 内核会拿一个 500×136 的「屏幕」，游戏照这个比例排版，格子小到看不清。
+   * 竖屏不设这条：那里空间够，让游戏自己按可用面积铺满更好。
+   */
+  .player__screen {
+    width: auto;
+    height: 100%;
+    aspect-ratio: 3 / 4;
+    max-width: 100%;
+  }
+
+  /* `display: contents` 把键区两块提到外层网格，各自落到左右两侧。 */
+  .keypad {
+    display: contents;
+  }
+
+  .keypad__main {
+    grid-area: pad;
+    align-self: center;
+  }
+
+  .keypad__soft {
+    grid-area: aux;
+    align-self: center;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .keypad__soft > .pad {
+    width: 96px;
+  }
+
+  .player__hint,
+  .player__error {
+    display: none;
   }
 }
