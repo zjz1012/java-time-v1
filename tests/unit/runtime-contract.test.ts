@@ -14,7 +14,7 @@ function pkg(overrides: Partial<MidletPackage> = {}): MidletPackage {
 }
 
 describe('RuntimeAdapter 成功路径', () => {
-  it('按 idle → ready → running 迁移，并广播状态变化', async () => {
+  it('按 idle → ready → starting → running 迁移，并广播状态变化', async () => {
     const runtime = new MockRuntime()
     const seen: string[] = []
     runtime.on('statechange', (e) => seen.push(`${e.previous}->${e.current}`))
@@ -23,7 +23,14 @@ describe('RuntimeAdapter 成功路径', () => {
     await runtime.start()
 
     expect(runtime.currentState()).toBe('running')
-    expect(seen).toEqual(['idle->loading', 'loading->ready', 'ready->running'])
+    // `ready->starting` 这一步不能省：内核从收下包到出画有几秒黑屏，
+    // 中间没有状态的话，UI 只能把「已请求启动」当成「已经在跑」。
+    expect(seen).toEqual([
+      'idle->loading',
+      'loading->ready',
+      'ready->starting',
+      'starting->running',
+    ])
   })
 
   it('暂停后恢复回到 running', async () => {

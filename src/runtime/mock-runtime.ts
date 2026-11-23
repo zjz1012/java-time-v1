@@ -82,9 +82,12 @@ export class MockRuntime extends BaseRuntime {
         `无法从 ${this.currentState()} 启动`,
       )
     }
+    // 与真实实现保持同一个状态序列：先 starting，拿到「首帧」才 running。
+    // 假实现若比真实现少一个状态，照它写的 UI 断言会在真内核上翻车。
+    this.transition('starting', 'start')
     await this.#delay(undefined, 'start')
     this.#failIfConfigured('start')
-    this.transition('running', 'start')
+    this.transition('running', 'first-frame')
     this.#scheduleFrames()
   }
 

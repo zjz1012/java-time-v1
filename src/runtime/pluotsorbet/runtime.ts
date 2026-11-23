@@ -122,7 +122,15 @@ export class PluotSorbetRuntime extends BaseRuntime {
     }
 
     if (parsed.type === 'runtime:state') {
-      this.transition(parsed.payload.state, parsed.payload.reason)
+      const next = parsed.payload.state
+      /*
+       * 启动期间宿主会先发一次 `loading`（它自己的装配阶段）。
+       * 外壳此时已经是 `starting`，退回去只会让徽标闪一下「加载中」。
+       * 其余状态照常跟随 —— 宿主是画面事实的来源。
+       */
+      if (next !== 'loading' || this.currentState() !== 'starting') {
+        this.transition(next, parsed.payload.reason)
+      }
       this.#settle(parsed)
     }
   }
@@ -150,7 +158,7 @@ export class PluotSorbetRuntime extends BaseRuntime {
     }
 
     // 内核不可重入：重载只能换一个干净的 iframe，不能在旧实例上重置。
-    this.#teardown()
+    this.#teardown('reload')
     this.#packageBytes = toArrayBuffer(pkg.bytes)
     this.#launched = false
     this.transition('loading', 'host-iframe-created')
@@ -174,7 +182,8 @@ export class PluotSorbetRuntime extends BaseRuntime {
         options?.timeoutMs ?? this.#readyTimeoutMs,
       )
     } catch (cause) {
-      this.#teardown()
+      this.#teardown('host-not-ready')
+      if (isAborted(cause)) throw cause
       this.transition('failed', 'host-not-ready')
       throw cause
     }
@@ -195,7 +204,13 @@ export class PluotSorbetRuntime extends BaseRuntime {
     }
 
     this.#launched = true
-    this.transition('running', 'launch-requested')
+    /*
+     * 只进 `starting`，不进 `running`。内核从收下字节到出首帧之间画面是黑的，
+     * 这段时间必须继续被遮罩盖着 —— 提前标 `running` 会让遮罩条件失效，
+     * 用户看到的就是「已运行 + 一片黑」，与崩溃无法区分。
+     * 真正的 `running` 由宿主发来的 `first-paint` 事件触发（见 #onMessage）。
+     */
+    this.transition('starting', 'launch-requested')
 
     // 不把 buffer 放进 transfer list：调用方可能还要用它算指纹或写存档，
     // 转移所有权会让对方的 Uint8Array 变成 detached。
@@ -217,9 +232,15 @@ export class PluotSorbetRuntime extends BaseRuntime {
         'TIMEOUT',
       )
     } catch (cause) {
+      // 被取消的操作不算失败：状态已经由取消方（dispose / stop）定好了，
+      // 这里再标 failed 会把「用户按了返回」记成「启动出错」。
+      if (isAborted(cause)) throw cause
       this.transition('failed', 'start-failed')
       throw cause
     }
+
+    // 消息处理里已经迁移过一次，这里是幂等兜底：保证 start() 返回时状态一定是 running。
+    this.transition('running', 'first-paint')
   }
 
   async pause(): Promise<void> {
@@ -290,24 +311,28 @@ export class PluotSorbetRuntime extends BaseRuntime {
       // 停不下来也必须停：内核没有优雅退出路径，直接拆 iframe 是唯一可靠的收尾。
     }
 
-    this.#teardown()
+    this.#teardown('stopped')
     this.transition('stopped', 'stopped')
   }
 
   async dispose(): Promise<void> {
     if (this.#disposed) return
     this.#disposed = true
-    this.#teardown()
+    this.#teardown('disposed')
     this.emitter.clear()
     if (this.currentState() !== 'stopped') this.transition('stopped', 'disposed')
   }
 
-  /** 拆掉 iframe 与监听器，让下一个实例从零开始。 */
-  #teardown(): void {
-    if (this.#waiter) {
-      clearTimeout(this.#waiter.timer)
-      this.#waiter = null
-    }
+  /**
+   * 拆掉 iframe 与监听器，让下一个实例从零开始。
+   *
+   * **必须主动拒绝挂起的等待**，只清计时器不够：`#waitFor` 的 Promise
+   * 会永远不 settle，`await` 它的启动流程就永远挂着 —— 组件已经卸载了，
+   * 那个闭包还拿着 runtime、JAR 字节和 setState。表现是内存只增不减，
+   * 且任何「等加载完再做下一步」的代码再也不会执行。
+   */
+  #teardown(reason: string): void {
+    this.#rejectAll(new RuntimeFailure('ABORTED', `操作已中止：${reason}`))
     this.#iframe?.remove()
     this.#iframe = null
     this.#packageBytes = null
@@ -373,4 +398,13 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
     return bytes.buffer as ArrayBuffer
   }
   return bytes.slice().buffer as ArrayBuffer
+}
+
+/**
+ * 取消不是失败。分清这两种情况的用处：`dispose()` 会先中止等待、再设状态，
+ * 如果等待的 catch 把中止记成 failed，退出页面就会被记成启动出错 ——
+ * 日志和用户看到的文案都会指错方向。
+ */
+function isAborted(cause: unknown): boolean {
+  return cause instanceof RuntimeFailure && cause.code === 'ABORTED'
 }

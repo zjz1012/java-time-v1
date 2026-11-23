@@ -53,6 +53,14 @@ export type RuntimeState =
   | 'idle'
   | 'loading'
   | 'ready'
+  /**
+   * 启动指令已发出，等内核交出首帧。
+   *
+   * 与 `running` 必须分开：内核从收下 JAR 到出画有 2~4 秒，这段时间画面全黑。
+   * 提前标成 `running` 会让「遮住画面」的判断失效，用户看到的就是一块黑屏
+   * —— 与「已经挂了」长得一模一样。
+   */
+  | 'starting'
   | 'running'
   | 'paused'
   | 'stopping'
