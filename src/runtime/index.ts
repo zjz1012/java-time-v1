@@ -8,6 +8,8 @@ export {
   type HostEvent,
   type HostKeyCommand,
   type HostLaunchCommand,
+  type HostSavesEvent,
+  type HostSnapshotCommand,
   type PhysicalKeymap,
 } from './pluotsorbet/protocol'
 export {
@@ -28,4 +30,6 @@ export {
   type RuntimeEvents,
   type RuntimeInfo,
   type RuntimeState,
+  type SaveFile,
+  type SaveReason,
 } from './types'

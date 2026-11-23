@@ -205,11 +205,43 @@
         var START_TIMEOUT_MS = 20000
         var POLL_INTERVAL_MS = 700
 
+        /*
+         * 存档相关的常量。全部来自对内核产物的实测（ADR 0005）：
+         *
+         *   RMS 落在 RECORD_STORE_BASE + "/" + filenameBase + "/" + name + "." + ext
+         *   而 filenameBase 恒为空串（MIDletSuiteStorage.getSecureFilenameBase 返回 ""），
+         *   所以用户数据就在 /RecordStore 下面，且**不区分游戏**。
+         *
+         *   IDB 的库名/版本/表名硬编码在内核里（Store.DBNAME / DBVERSION / DBSTORENAME_4），
+         *   这里复制一份。这是本方案唯一越过内核接口去摸内部存储的地方 ——
+         *   内核升级时若这几个常量变了，恢复会静默失效，所以升级必须复核。
+         */
+        var SNAPSHOT_ROOT = '/RecordStore'
+        var IDB_NAME = 'asyncStorage'
+        var IDB_VERSION = 4
+        var IDB_STORE = 'fs4'
+
+        /*
+         * 静默期归档的节奏。
+         *
+         * 为什么不是「一变就传」：一次存档可能跨 .db 与 .idx 两个文件，
+         * 中途读会得到索引与数据不一致的快照。等连续两轮（约 4 秒）没有变化
+         * 才读，代价是归档滞后几秒，换来的是「不会归档一个半写状态」。
+         */
+        var IDLE_INTERVAL_MS = 2000
+        var IDLE_STABLE_TICKS = 2
+
         var parentWindow = window.parent !== window ? window.parent : null
         var targetOrigin = location.origin
         var phase = 'boot'
         var jarUrl = null
         var pollTimer = 0
+
+        /** 静默期归档用的三个状态：上一轮签名、连续稳定轮数、已归档过的签名。 */
+        var idleTimer = 0
+        var idleSignature = ''
+        var idleStable = 0
+        var archivedSignature = ''
 
         /** 物理键 code → 逻辑控制名。由外壳在启动指令里下发，宿主不自己发明。 */
         var keymap = {}
@@ -502,6 +534,310 @@
           }
         }
 
+        /*
+         * ───────────────────────── 存档快照 ─────────────────────────
+         *
+         * 内核的 RMS 数据落在 /RecordStore 下的文件里，但它的持久化不可靠：
+         * pagehide 里才发起的 IDB 事务在 iframe 被摘除后不完成（实测），
+         * 定时落盘又要等启动 20 秒后才开始。所以真相由外壳持有，
+         * 这里只负责「读出来交给外壳」与「启动前灌进去」。
+         *
+         * 详见 ADR 0005。
+         */
+
+        /** 递归列出 /RecordStore 下的全部文件路径。目录不存在视为「没有存档」。 */
+        function listSnapshotPaths() {
+          if (typeof fs === 'undefined' || !fs || typeof fs.list !== 'function') return []
+          var out = []
+          ;(function walk(dir) {
+            var entries
+            try {
+              entries = fs.list(dir)
+            } catch (err) {
+              // 目录不存在时 fs.list 会 throw。没有存档不是错误。
+              return
+            }
+            for (var i = 0; i < entries.length; i++) {
+              var entry = entries[i]
+              var isDir = entry.charAt(entry.length - 1) === '/'
+              var name = isDir ? entry.slice(0, -1) : entry
+              var full = dir + '/' + name
+              if (isDir) walk(full)
+              else out.push(full)
+            }
+          })(SNAPSHOT_ROOT)
+          return out
+        }
+
+        /**
+         * 读一份完整快照。
+         *
+         * 读的是**已提交**的内容：fs.getBlob 拿的是 store 里最后一次 flush 的 Blob，
+         * 正在写、还没 commit 的文件拿不到新值 —— 这正是我们要的语义。
+         */
+        function readSnapshot() {
+          var paths = listSnapshotPaths()
+          if (!paths.length) return Promise.resolve([])
+
+          return Promise.all(
+            paths.map(function (path) {
+              return new Promise(function (resolve) {
+                var blob = null
+                try {
+                  blob = fs.getBlob(path)
+                } catch (err) {
+                  resolve(null)
+                  return
+                }
+                if (!blob) {
+                  resolve(null)
+                  return
+                }
+                if (blob.size === 0) {
+                  resolve({ path: path, bytes: new Uint8Array(0) })
+                  return
+                }
+                var reader = new FileReader()
+                reader.onload = function () {
+                  resolve({ path: path, bytes: new Uint8Array(reader.result) })
+                }
+                reader.onerror = function () {
+                  // 单个文件读失败不该让整份快照作废，但要留痕。
+                  console.warn('[host] 读存档文件失败：' + path)
+                  resolve(null)
+                }
+                reader.readAsArrayBuffer(blob)
+              })
+            }),
+          ).then(function (items) {
+            return items.filter(function (item) {
+              return item !== null
+            })
+          })
+        }
+
+        /**
+         * 廉价的「变了没有」指纹：路径 + size + mtime。
+         *
+         * 不读内容。存档通常几十 KB，但每 2 秒读一次内容+算哈希是白烧 CPU；
+         * 而且 stat 反映的就是「已提交」的状态，与 readSnapshot 的口径一致。
+         */
+        function snapshotSignature() {
+          var paths
+          try {
+            paths = listSnapshotPaths()
+          } catch (err) {
+            return ''
+          }
+          var parts = []
+          for (var i = 0; i < paths.length; i++) {
+            var stat = null
+            try {
+              stat = fs.stat(paths[i])
+            } catch (err) {
+              stat = null
+            }
+            parts.push(paths[i] + ':' + (stat ? String(stat.size) + ':' + String(stat.mtime) : '?'))
+          }
+          return parts.sort().join('|')
+        }
+
+        /**
+         * 校验外壳下发的恢复文件。
+         *
+         * 宿主不信任这条通道：路径必须落在 /RecordStore 下，否则一个写错的
+         * 恢复包就能改内核的其他文件（比如把证书库换成别的）。
+         */
+        function normalizeSaveFiles(raw) {
+          var out = []
+          if (!raw || typeof raw.length !== 'number') return out
+          for (var i = 0; i < raw.length; i++) {
+            var item = raw[i]
+            if (!item || typeof item.path !== 'string') continue
+            if (!item.bytes || typeof item.bytes.byteLength !== 'number') continue
+            if (item.path !== SNAPSHOT_ROOT && item.path.indexOf(SNAPSHOT_ROOT + '/') !== 0) {
+              console.warn('[host] 丢弃越界的恢复路径：' + item.path)
+              continue
+            }
+            out.push({ path: item.path, bytes: new Uint8Array(item.bytes) })
+          }
+          return out
+        }
+
+        /**
+         * 打开内核的存储库；库还不存在时返回 null。
+         *
+         * ★ 不能盲目 `open(IDB_NAME, IDB_VERSION)`：库不存在时它会**创建一个
+         *   版本号是 4、却没有任何表**的空库。内核随后 open 同版本不会触发
+         *   upgradeneeded，于是 `transaction(IDB_STORE)` 直接抛 NotFoundError，
+         *   表现是「启动层不动、控制台没有任何报错」。
+         */
+        function openKernelStore() {
+          if (typeof indexedDB === 'undefined') return Promise.resolve(null)
+
+          function openExisting() {
+            return new Promise(function (resolve) {
+              var req = indexedDB.open(IDB_NAME, IDB_VERSION)
+              req.onupgradeneeded = function () {
+                // 库存在但版本更低（或探测失败）：让内核自己去升级，本次放弃恢复。
+                try {
+                  req.transaction.abort()
+                } catch (err) {
+                  /* ignore */
+                }
+                resolve(null)
+              }
+              req.onsuccess = function () {
+                resolve(req.result)
+              }
+              req.onerror = function () {
+                resolve(null)
+              }
+            })
+          }
+
+          if (typeof indexedDB.databases !== 'function') return openExisting()
+          return indexedDB.databases().then(
+            function (list) {
+              var exists = false
+              for (var i = 0; i < list.length; i++) {
+                if (list[i].name === IDB_NAME) exists = true
+              }
+              return exists ? openExisting() : null
+            },
+            function () {
+              return openExisting()
+            },
+          )
+        }
+
+        /**
+         * 启动前把快照写进内核的存储库。
+         *
+         * 即使 files 为空也要执行：空的恢复意味着「这款游戏还没有存档」，
+         * 此时必须把上一款游戏留下的 /RecordStore 清掉，否则同名 RMS 会串味。
+         */
+        function restoreIntoIdb(files) {
+          return openKernelStore().then(function (db) {
+            if (!db) return 'skipped'
+            return new Promise(function (resolve) {
+              var tx
+              try {
+                tx = db.transaction(IDB_STORE, 'readwrite')
+              } catch (err) {
+                console.warn('[host] 存储库不可写，跳过存档恢复：' + err)
+                resolve('unavailable')
+                return
+              }
+
+              var store = tx.objectStore(IDB_STORE)
+              var cursorReq = store.openCursor()
+              cursorReq.onerror = function () {
+                resolve('cursor-error')
+              }
+              cursorReq.onsuccess = function (event) {
+                var cursor = event.target.result
+                if (cursor) {
+                  var key = String(cursor.key)
+                  if (key === SNAPSHOT_ROOT || key.indexOf(SNAPSHOT_ROOT + '/') === 0) {
+                    cursor.delete()
+                  }
+                  cursor.continue()
+                  return
+                }
+
+                // 目录记录要补上：内核的 fs.exists 会查它，缺了会让 RMS 报「打开失败」。
+                store.put({
+                  pathname: SNAPSHOT_ROOT,
+                  isDir: true,
+                  parentDir: '/',
+                  mtime: Date.now(),
+                })
+
+                for (var i = 0; i < files.length; i++) {
+                  var file = files[i]
+                  var slash = file.path.lastIndexOf('/')
+                  store.put({
+                    pathname: file.path,
+                    isDir: false,
+                    parentDir: slash > 0 ? file.path.slice(0, slash) : '/',
+                    size: file.bytes.byteLength,
+                    mtime: Date.now(),
+                    data: new Blob([file.bytes]),
+                  })
+                }
+
+                tx.oncomplete = function () {
+                  resolve(files.length ? 'restored' : 'cleared')
+                }
+                tx.onerror = function () {
+                  resolve('error:' + tx.error)
+                }
+                tx.onabort = function () {
+                  resolve('abort')
+                }
+              }
+            })
+          })
+        }
+
+        /** 静默期自动归档：兜「直接关页面 / 刷新」这条最容易被忽视的退出路径。 */
+        function startIdleWatch() {
+          stopIdleWatch()
+          idleSignature = snapshotSignature()
+          // 启动时的状态就是刚恢复/刚开局的存档，不需要再推一遍。
+          archivedSignature = idleSignature
+          idleStable = 0
+          idleTimer = setInterval(tickIdle, IDLE_INTERVAL_MS)
+        }
+
+        function stopIdleWatch() {
+          if (idleTimer) {
+            clearInterval(idleTimer)
+            idleTimer = 0
+          }
+        }
+
+        function tickIdle() {
+          if (phase !== 'running') return
+          var signature = snapshotSignature()
+          if (signature !== idleSignature) {
+            idleSignature = signature
+            idleStable = 0
+            return
+          }
+          idleStable++
+          if (idleStable < IDLE_STABLE_TICKS) return
+          if (signature === archivedSignature) return
+          // 先记账再读：读是异步的，期间可能又变；重复推送会让外壳反复写归档。
+          archivedSignature = signature
+          readSnapshot().then(function (files) {
+            if (phase !== 'running') return
+            send('runtime:saves', { reason: 'idle', files: files })
+          })
+        }
+
+        /*
+         * 退出前导出。
+         *
+         * 顺序不能反：必须先读快照、发出去，再回 stopped —— 外壳拿到 stopped
+         * 就会拆 iframe，那时候内核的 fs 已经不在了。
+         */
+        function flushAndShutdown() {
+          stopIdleWatch()
+          readSnapshot()
+            .then(function (files) {
+              send('runtime:saves', { reason: 'stop', files: files })
+            })
+            .catch(function () {
+              /* 读失败也要让退出继续，否则用户卡在游戏里出不来 */
+            })
+            .then(function () {
+              shutdown()
+              send('runtime:state', { state: 'stopped', reason: 'host-shutdown' })
+            })
+        }
+
         function watchForFirstPaint() {
           var canvas = document.getElementById('canvas')
           var deadline = Date.now() + START_TIMEOUT_MS
@@ -512,6 +848,8 @@
             if (probePainted(canvas)) {
               phase = 'running'
               send('runtime:state', { state: 'running', reason: 'first-paint' })
+              // 出画之后才开始看存档：之前 fs 还没装配好，读也没意义。
+              startIdleWatch()
               return
             }
             if (Date.now() > deadline) {
@@ -581,7 +919,24 @@
            *   main-all.js 末 —— 末尾是立即执行的顶层语句，前面两件必须已就位。
            * 旧宿主页的装载器（load-versioned.js）里，顺序同样是 native 在 j2me 之前。
            */
-          loadScript('native.js')
+          /*
+           * 存档恢复必须排在装载内核之前，而且是**必须等它结束**：
+           * 内核的 fs.init 会在 main-all.js 执行时把库里现有的记录读进内存，
+           * 之后没有任何「已 init、MIDlet 未跑」的插入点。晚一步，
+           * MIDlet 就已经读过档了。详见 ADR 0005。
+           */
+          restoreIntoIdb(normalizeSaveFiles(options && options.restore))
+            .catch(function (err) {
+              // 恢复失败不拦启动：玩不了比存档没接上更糟。但必须留痕。
+              console.warn('[host] 存档恢复未完成：' + err)
+              return 'failed'
+            })
+            .then(function (result) {
+              if (result === 'skipped' || result === 'unavailable') {
+                console.warn('[host] 存档恢复被跳过（' + result + '），本次沿用库里的现有数据')
+              }
+              return loadScript('native.js')
+            })
             .then(function () {
               // wasm 版 native 把导出挂在 Module.asm；内核读的是全局 ASM。
               // 这是 wasm 化之后新旧产物之间唯一的接口差异，必须在这里补齐。
@@ -607,6 +962,7 @@
         function shutdown() {
           phase = 'stopped'
           stopPolling()
+          stopIdleWatch()
           if (jarUrl) {
             URL.revokeObjectURL(jarUrl)
             jarUrl = null
@@ -634,8 +990,14 @@
               sendControl(data.payload.control, data.payload.phase)
               break
             case 'runtime:stop':
-              shutdown()
-              send('runtime:state', { state: 'stopped', reason: 'host-shutdown' })
+              // 先导快照再回 stopped：外壳一收到 stopped 就会拆 iframe。
+              flushAndShutdown()
+              break
+            case 'runtime:snapshot':
+              // 用户点了导出，不能等静默期的 4 秒滞后。
+              readSnapshot().then(function (files) {
+                send('runtime:saves', { reason: 'manual', files: files })
+              })
               break
             default:
               // 未知指令不静默吞掉：静默会让外壳以为指令生效了，问题推迟到更难查的地方。
@@ -676,6 +1038,9 @@
             frameTicks: false,
             pauseResume: false,
             keyInput: true,
+            // 内核的持久化不可靠，但外壳能读快照、能在启动前灌回去，
+            // 所以「存档」这项能力是真的有，不是声明着好看（见 ADR 0005）。
+            saves: true,
           },
         })
       })()

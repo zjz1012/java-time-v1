@@ -8,6 +8,7 @@ import type {
   RuntimeCapabilities,
   RuntimeEvents,
   RuntimeState,
+  SaveFile,
 } from './types'
 
 /**
@@ -52,6 +53,15 @@ export interface RuntimeAdapter {
    * 按键本来就无处可送。调用方据此决定是否提示，而不是当成异常。
    */
   sendKey(control: InputControl, phase: KeyPhase): boolean
+
+  /**
+   * 立刻导出一份存档快照。
+   *
+   * 只在 `running` 时可用：载入后内核还没装配文件系统，停止后 iframe 已经拆了。
+   * 不允许时抛 `INVALID_TRANSITION`，不返回空数组 —— 空数组会让「导出成功但
+   * 内容是空的」变成一个用户发现不了的故障。
+   */
+  snapshot(): Promise<readonly SaveFile[]>
 
   /** 停止并释放 MIDlet 占用的资源，状态回到 `stopped`。 */
   stop(): Promise<void>
@@ -100,6 +110,7 @@ export abstract class BaseRuntime implements RuntimeAdapter {
   abstract resume(): Promise<void>
   abstract setSpeed(rate: number): Promise<void>
   abstract sendKey(control: InputControl, phase: KeyPhase): boolean
+  abstract snapshot(): Promise<readonly SaveFile[]>
   abstract stop(): Promise<void>
   abstract dispose(): Promise<void>
 }

@@ -4,6 +4,8 @@ import type {
   RuntimeCapabilities,
   RuntimeErrorCode,
   RuntimeState,
+  SaveFile,
+  SaveReason,
 } from '../types'
 
 /**
@@ -47,7 +49,22 @@ export interface HostErrorEvent {
   }
 }
 
-export type HostEvent = HostReadyEvent | HostStateEvent | HostErrorEvent
+/**
+ * 存档快照里的一份文件。
+ *
+ * 类型定义在 `../types`（事件契约也用它），这里只说明本协议怎么搬它：
+ * 走结构化克隆，`bytes` 到接收侧仍是 Uint8Array，不需要 base64。
+ */
+export interface HostSavesEvent {
+  readonly v: number
+  readonly type: 'runtime:saves'
+  readonly payload: {
+    readonly reason: SaveReason
+    readonly files: readonly SaveFile[]
+  }
+}
+
+export type HostEvent = HostReadyEvent | HostStateEvent | HostErrorEvent | HostSavesEvent
 
 /**
  * 键盘映射：物理键（`KeyboardEvent.code`）→ 逻辑按键名。
@@ -67,6 +84,13 @@ export interface HostLaunchCommand {
     readonly mainClass?: string
     /** 缺省时宿主不接管物理键盘，只有外壳注入的按键有效 */
     readonly keymap?: PhysicalKeymap
+    /**
+     * 启动前要灌进内核 FS 的存档。
+     *
+     * 必须在页面侧写下，不能等内核起来再写：内核没有任何「已 init、MIDlet 未跑」
+     * 的插入点，而 MIDlet 一开跑就可能读档（见 ADR 0005）。
+     */
+    readonly restore?: readonly SaveFile[]
   }
 }
 
@@ -94,7 +118,23 @@ export interface HostStopCommand {
   readonly payload: Record<string, never>
 }
 
-export type HostCommand = HostLaunchCommand | HostKeyCommand | HostStopCommand
+/**
+ * 立刻导出一份快照。
+ *
+ * 静默期归档有约 4 秒滞后（要等游戏写完才敢读），用户点「导出」时不能等，
+ * 所以给一条强制读的指令。
+ */
+export interface HostSnapshotCommand {
+  readonly v: number
+  readonly type: 'runtime:snapshot'
+  readonly payload: Record<string, never>
+}
+
+export type HostCommand =
+  | HostLaunchCommand
+  | HostKeyCommand
+  | HostStopCommand
+  | HostSnapshotCommand
 
 /** 运行时判别：宿主发来的东西不可信，字段必须逐个验。 */
 export function parseHostEvent(data: unknown): HostEvent | null {
@@ -110,6 +150,7 @@ export function parseHostEvent(data: unknown): HostEvent | null {
     case 'host:ready':
     case 'runtime:state':
     case 'runtime:error':
+    case 'runtime:saves':
       return candidate as unknown as HostEvent
     default:
       return null

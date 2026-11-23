@@ -11,6 +11,7 @@ import type {
   RuntimeCapabilities,
   RuntimeErrorCode,
   RuntimeEvents,
+  SaveFile,
 } from '../types'
 import {
   HOST_PROTOCOL_VERSION,
@@ -19,6 +20,8 @@ import {
   type HostEvent,
   type HostKeyCommand,
   type HostLaunchCommand,
+  type HostSavesEvent,
+  type HostSnapshotCommand,
   type PhysicalKeymap,
 } from './protocol'
 
@@ -83,11 +86,14 @@ export class PluotSorbetRuntime extends BaseRuntime {
     frameTicks: false,
     pauseResume: false,
     keyInput: false,
+    saves: false,
   }
 
   #iframe: HTMLIFrameElement | null = null
   #waiter: Waiter | null = null
   #packageBytes: ArrayBuffer | null = null
+  /** 启动时要灌进内核的存档。`null` 表示「没给」= 空快照 = 清空内核现有 RMS。 */
+  #restoreFiles: readonly SaveFile[] | null = null
   #launched = false
   #disposed = false
   #listening = false
@@ -118,6 +124,17 @@ export class PluotSorbetRuntime extends BaseRuntime {
       this.transition('failed', `host-error:${parsed.payload.code}`)
       this.emitter.emit('error', failure.toPayload())
       this.#rejectAll(failure)
+      return
+    }
+
+    if (parsed.type === 'runtime:saves') {
+      /*
+       * 先唤醒等待者（可能有人在 `snapshot()` 里等），再广播。
+       * 广播的监听者会开始异步写归档，不该拖住 `snapshot()` 的返回。
+       */
+      this.#settle(parsed)
+      const saves = parsed as HostSavesEvent
+      this.emitter.emit('saves', { reason: saves.payload.reason, files: saves.payload.files })
       return
     }
 
@@ -160,6 +177,8 @@ export class PluotSorbetRuntime extends BaseRuntime {
     // 内核不可重入：重载只能换一个干净的 iframe，不能在旧实例上重置。
     this.#teardown('reload')
     this.#packageBytes = toArrayBuffer(pkg.bytes)
+    // 必须在 teardown 之后赋值 —— teardown 会把上一轮的状态清空。
+    this.#restoreFiles = options?.restore ?? null
     this.#launched = false
     this.transition('loading', 'host-iframe-created')
 
@@ -221,6 +240,9 @@ export class PluotSorbetRuntime extends BaseRuntime {
         bytes: this.#packageBytes,
         // 只有给了表才带上这个字段：宿主据此区分「没接管键盘」与「接管了但表是空的」。
         ...(this.#keymap ? { keymap: this.#keymap } : {}),
+        // restore 即使为空数组也要传：空快照的语义是「清掉内核现有的 RMS」，
+        // 不传与传空在此处不能混为一谈（见 LoadOptions.restore）。
+        ...(this.#restoreFiles ? { restore: this.#restoreFiles } : {}),
       },
     }
     this.#iframe.contentWindow.postMessage(command, window.location.origin)
@@ -286,6 +308,35 @@ export class PluotSorbetRuntime extends BaseRuntime {
     return true
   }
 
+  /**
+   * 立刻导出一份存档快照。
+   *
+   * 只在 `running` 时可用：`load` 之后内核还没装配 fs，读到的是空的；
+   * `stop` 之后 iframe 已经拆了。两者都该由调用方避开，而不是返回一份
+   * 看起来正常、实际是空的对象 —— 那会让「导出成功但存档是空的」变成一个
+   * 用户发现不了的故障。
+   */
+  async snapshot(): Promise<readonly SaveFile[]> {
+    this.#assertUsable()
+    if (this.currentState() !== 'running') {
+      throw new RuntimeFailure('INVALID_TRANSITION', '只有运行中的程序才有存档可导出')
+    }
+    const target = this.#iframe?.contentWindow
+    if (!target) {
+      throw new RuntimeFailure('INTERNAL', '宿主窗口不可用')
+    }
+
+    const command: HostSnapshotCommand = {
+      v: HOST_PROTOCOL_VERSION,
+      type: 'runtime:snapshot',
+      payload: {} as Record<string, never>,
+    }
+    target.postMessage(command, window.location.origin)
+
+    const event = await this.#waitFor((candidate) => candidate.type === 'runtime:saves', 3_000)
+    return (event as HostSavesEvent).payload.files
+  }
+
   async stop(): Promise<void> {
     if (this.#disposed) return
     const frame = this.#iframe
@@ -336,6 +387,7 @@ export class PluotSorbetRuntime extends BaseRuntime {
     this.#iframe?.remove()
     this.#iframe = null
     this.#packageBytes = null
+    this.#restoreFiles = null
     if (this.#listening) {
       window.removeEventListener('message', this.#onMessage)
       this.#listening = false

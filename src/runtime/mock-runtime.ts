@@ -12,6 +12,8 @@ import {
   type RuntimeCapabilities,
   type RuntimeEvents,
   type RuntimeState,
+  type SaveFile,
+  type SaveReason,
 } from './types'
 
 export interface MockRuntimeOptions {
@@ -31,6 +33,7 @@ const DEFAULT_CAPABILITIES: RuntimeCapabilities = {
   frameTicks: true,
   pauseResume: true,
   keyInput: true,
+  saves: true,
 }
 
 /**
@@ -48,6 +51,8 @@ export class MockRuntime extends BaseRuntime {
 
   readonly #options: MockRuntimeOptions
   readonly #keys: Array<{ control: InputControl; phase: KeyPhase }> = []
+  /** 假存档。`load` 时用 restore 初始化，之后由测试通过 setSaves 改写。 */
+  #saves: SaveFile[] = []
   #speed = 1
   #frameTimer: ReturnType<typeof setInterval> | undefined
   #disposed = false
@@ -71,7 +76,23 @@ export class MockRuntime extends BaseRuntime {
     this.transition('loading', 'load requested')
     await this.#delay(options.timeoutMs, 'load')
     this.#failIfConfigured('load')
+    // 与真内核同语义：restore 就是「内核里现在有什么存档」，缺省为空。
+    this.#saves = [...(options.restore ?? [])]
     this.transition('ready', 'package loaded')
+  }
+
+  /**
+   * 立刻导出一份快照。
+   *
+   * 与真实实现保持同样的前置条件（只在 running 可用）：假实现若宽松，
+   * 照它写的 UI 会在真内核上收到一个 `INVALID_TRANSITION`。
+   */
+  async snapshot(): Promise<readonly SaveFile[]> {
+    this.#assertAlive()
+    if (this.currentState() !== 'running') {
+      throw new RuntimeFailure('INVALID_TRANSITION', '只有运行中的程序才有存档可导出')
+    }
+    return [...this.#saves]
   }
 
   async start(): Promise<void> {
@@ -151,6 +172,9 @@ export class MockRuntime extends BaseRuntime {
     this.transition('stopping', 'stop requested')
     await Promise.resolve()
     this.#failIfConfigured('stop')
+    // 与宿主页同一顺序：先交快照，再报 stopped。外壳拿到 stopped 就拆 iframe，
+    // 顺序反了的话真内核里这份快照根本来不及发。
+    this.emitter.emit('saves', { reason: 'stop', files: [...this.#saves] })
     this.transition('stopped', 'stopped')
   }
 
@@ -160,6 +184,16 @@ export class MockRuntime extends BaseRuntime {
     this.#stopFrames()
     this.transition('stopped', 'disposed')
     this.emitter.clear()
+  }
+
+  /** 测试用：改写假存档，模拟「游戏写了一次档」。 */
+  setSaves(files: readonly SaveFile[]): void {
+    this.#saves = [...files]
+  }
+
+  /** 测试用：主动广播一份快照，模拟静默期归档或用户导出。 */
+  emitSaves(reason: SaveReason = 'idle'): void {
+    this.emitter.emit('saves', { reason, files: [...this.#saves] })
   }
 
   /** 手动推进一帧，供测试确定性驱动。 */
