@@ -28,17 +28,19 @@ describe('运行页的失败出路', () => {
   })
 })
 
-describe('画面尺寸的约束', () => {
-  it('横屏下画面按竖屏比例收窄', () => {
-    // 横屏宽裕的是宽度、稀缺的是高度。不限宽的话内核会拿一个 500×136 的
-    // 「屏幕」，游戏照这个比例排版，格子小到看不清（实测过，确实如此）。
-    expect(css).toMatch(/orientation: landscape/)
-    // 同一条规则里宽度自适应、高度占满、比例锁 3:4
-    expect(css).toMatch(/\.player__screen \{[^}]*width: auto;[^}]*height: 100%;[^}]*aspect-ratio: 3 \/ 4;/)
+describe('只做竖屏', () => {
+  it('不引入横屏专用分支', () => {
+    // V1.0 砍掉横屏适配。留半套横屏规则比完全不做更糟：它会在没人
+    // 验证过的尺寸上生效，出问题也没人知道 —— 而横屏真要打磨，
+    // 得先决定画面比例与键区分布，那是下一版的事。
+    expect(css).not.toMatch(/orientation: landscape/)
+    expect(css).not.toContain('display: contents')
   })
 
-  it('键区两块在横屏下分列画面左右', () => {
-    expect(css).toMatch(/\.keypad \{\s*display: contents;/)
-    expect(css).toMatch(/'pad bar stage aux'|'pad stage aux'/)
+  it('画面不锁宽高比，交给游戏按可用面积自适应', () => {
+    // 容器尺寸就是内核报告的物理屏幕，游戏普遍用 getWidth()/getHeight()
+    // 重排。竖屏锁 3:4 只会白丢高度（实测 67px），换不来任何东西。
+    // 只看声明不看注释 —— 上面那段注释里就写着这个词。
+    expect(css).not.toMatch(/^\s*aspect-ratio:/m)
   })
 })

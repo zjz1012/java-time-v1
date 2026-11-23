@@ -154,7 +154,10 @@ code {
 /*
  * 整页不滚动：滚动条会让画面在「刚好满屏」和「差 2px」之间反复切换，
  * 而内核把画面尺寸当物理屏幕，差 2px 就是整屏重排。
- * 纵向空间不够时由键区的横屏档位让位，不让页面滚起来。
+ * 纵向空间不够时由键区的矮屏档位（--pad-cell 收一档）让位，不让页面滚起来。
+ *
+ * V1.0 只做竖屏。横屏不做适配，也不做「请旋转手机」的拦截 ——
+ * 真有人横过来，flex 会把画面压扁，游戏自己按可用面积重排，还能玩。
  */
 .player {
   max-width: 520px;
@@ -341,11 +344,30 @@ code {
 
 /* ---------- 虚拟键区 ---------- */
 
+/*
+ * 形态照诺基亚直板机，不照掌机：
+ *
+ *   [左软键]        [右软键]       ← 贴画面两角，正对游戏自己画的软键提示
+ *          ┌─ ▲ ─┐
+ *          ◀ OK ▶        [C]      ← 圆形导航键居中，C 键在右侧
+ *          └─ ▼ ─┘
+ *        1    2    3
+ *        4    5    6               ← 数字键盘常驻，3×4 满宽
+ *        7    8    9
+ *        *    0    #
+ *
+ * 数字键藏起来就不像手机了：拇指的位置感来自「上面导航、下面数字」
+ * 这个固定的物理排布，而不是每次现找按钮。
+ */
 .keypad {
-  --pad-size: 56px;
-  --pad-gap: 5px;
-  /* 十字键整块的高度，数字面板复用同一高度，切模式时键区不跳。 */
-  --pad-block: calc(var(--pad-size) * 3 + var(--pad-gap) * 2);
+  --pad-cell: 50px;
+  --pad-gap: 4px;
+  /* 导航键整块尺寸 */
+  --nav-size: calc(var(--pad-cell) * 3 + var(--pad-gap) * 2);
+  /* 数字键行高单独给，不跟导航盘等高：等高时每行只剩 37px，
+   * 低于 44 的可点下限。真机的数字区本来就比导航区高 —— 拇指要按
+   * 12 个键，这才是它的主战场。 */
+  --num-row: 44px;
   flex: none;
   display: grid;
   gap: 8px;
@@ -355,41 +377,46 @@ code {
   -webkit-user-select: none;
 }
 
-/* 软键贴画面底边：游戏自己会在屏幕底部画「左软键撤销 · 右软键重开」，
- * 位置对不上就得让用户先读字再找按钮。宽度固定、两端对齐，
- * 拉成两条等分横幅会和方向键抢面积，也不像真机的软键。 */
+/* 软键贴画面底边。中间必须留出一大段空白，让出游戏自己画的
+ * 「左软键撤销 · 右软键重开」—— 按钮正对那两处文字，用户不用先读字再找位置。
+ *
+ * 宽度收到屏宽的 42% 以内：真机的软键是两颗小横条，拉成等分横幅
+ * 会比下面的导航盘还宽，视觉上把键区压得很重。 */
 .keypad__soft {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
 }
 
 .keypad__soft > .pad {
-  width: 112px;
+  width: min(132px, 42%);
+  min-height: 40px;
 }
 
-.keypad__main {
+.keypad__nav {
   display: grid;
-  /* 只用两列：三列的话第三列没有子元素、宽度为 0，功能键会被 gap 顶离右边缘 8px。
-   * 十字键靠左、功能键靠右，中间留白 —— 左右手各管一边，拇指不用跨过屏幕中线。 */
-  grid-template-columns: auto 1fr;
-  gap: 8px;
-  align-items: start;
+  /* 三列、导航键落在中间列：左右两列等宽，导航键才是真的居中，
+   * 不随右侧 C 键的宽度往左偏。 */
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
 }
 
-.keypad__slot {
-  /* 宽度必须写死成十字键那一块的尺寸。它落在 grid 的 auto 列里，
-   * 而数字网格的列是 1fr —— 不约束宽度时整块会塌到 min-content，
-   * 数字键挤成几根竖条贴在左边。 */
-  width: calc(var(--pad-size) * 3 + var(--pad-gap) * 2);
-  height: var(--pad-block);
-}
-
+/*
+ * 圆形导航键。拼不出圆形的按钮，但能拼出圆形的**按压区**：
+ * 容器画一个圆，四个方向键自身透明（只留箭头），按下高亮由容器的
+ * `overflow: hidden` 裁成圆弧 —— 视觉上就是一块整体的导航盘。
+ */
 .keypad__dpad {
+  grid-column: 2;
+  width: var(--nav-size);
+  height: var(--nav-size);
   display: grid;
-  grid-template-columns: repeat(3, var(--pad-size));
-  grid-template-rows: repeat(3, var(--pad-size));
+  grid-template-columns: repeat(3, var(--pad-cell));
+  grid-template-rows: repeat(3, var(--pad-cell));
   gap: var(--pad-gap);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  overflow: hidden;
 }
 
 .keypad__cell {
@@ -398,6 +425,8 @@ code {
 
 .keypad__cell > .pad {
   flex: 1;
+  /* 格子尺寸由网格算；基础样式的 44px 下限会在矮屏档位把格子撑破。 */
+  min-height: 0;
 }
 
 .keypad__cell--up {
@@ -420,12 +449,13 @@ code {
   grid-area: 3 / 2;
 }
 
+/* 数字键盘的行高由 --num-row 决定，与导航盘无关。 */
 .keypad__num {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-rows: repeat(4, minmax(0, 1fr));
   gap: var(--pad-gap);
-  height: 100%;
+  height: calc(var(--num-row) * 4 + var(--pad-gap) * 3);
 }
 
 .keypad__num-cell {
@@ -434,15 +464,7 @@ code {
 
 .keypad__num-cell > .pad {
   flex: 1;
-  /* 行高由网格算，基础样式的 44px 下限会把它撑破。 */
   min-height: 0;
-}
-
-.keypad__tools {
-  display: flex;
-  /* 主区是三列（十字键 / 空白 / 功能键），但只有两个子元素，
-   * 靠 `justify-self` 把自己推到最右，而不是让 1fr 列把它拉宽。 */
-  justify-self: end;
 }
 
 /* ---------- 按键 ---------- */
@@ -462,34 +484,48 @@ code {
   transition: background-color 60ms linear, transform 60ms linear;
 }
 
+/* 方向键：透明，箭头只是刻在导航盘上的标记。
+ * 箭头要给到正文色而不是 --text-dim —— 它是这个盘上唯一的定位信息，
+ * 看淡了就得盯着找。 */
 .pad--arrow {
-  font-size: 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
 }
 
-/* 主操作键压一层底色：它和方向键是同一组，但语义不同，
- * 完全同款会让新用户以为中间那个也是方向。 */
+/* 圆形裁切下缩放会在边缘露出容器底色，看起来像键缩水了一圈。 */
+.pad--arrow.pad--held {
+  transform: none;
+}
+
+/* 中间是圆形选择键，比格子小一圈 —— 诺基亚的导航键就是这个形。 */
 .pad--fire {
+  margin: 3px;
+  border-radius: 50%;
   background: var(--bg);
   border-color: var(--text-dim);
-  letter-spacing: 0.02em;
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
 
-/* 软键和功能键是低频键，边框收淡，不跟方向键抢注意力。 */
+/* 软键和 C 键是低频键，边框收淡，不跟导航键抢注意力。 */
 .pad--soft,
-.pad--tool {
+.pad--clear {
   border-style: dashed;
+  border-radius: 10px;
   color: var(--text-dim);
   font-weight: 500;
-  border-radius: 10px;
 }
 
-.pad--soft {
-  min-height: 38px;
-}
-
-.pad--tool {
-  width: calc(var(--pad-size) * 1.6);
-  height: var(--pad-size);
+.pad--clear {
+  grid-column: 3;
+  justify-self: end;
+  width: 56px;
+  height: 44px;
+  min-height: 0;
+  font-size: 13px;
 }
 
 /* 用 --surface 做前景：浅色主题下是白字压深绿，深色主题下是深灰字压浅绿，两个方向都够对比。 */
@@ -501,90 +537,50 @@ code {
   transform: scale(0.97);
 }
 
-/* 数字模式是「已切走」，不是「按下」，所以用描边而不是反色 ——
- * 反色会在松手后继续亮着，看起来像卡键。 */
-.pad--tool-on {
-  border-style: solid;
-  border-color: var(--accent);
-  color: var(--accent);
+/* 数字键：数字在上、T9 字母在下，和真机印的字一样。 */
+.pad--num {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  border-radius: 8px;
+  padding: 0;
 }
 
-.pad--num {
-  font-size: 15px;
+.pad__digit {
+  font-size: 16px;
   font-weight: 600;
-  border-radius: 10px;
+  line-height: 1;
+}
+
+.pad__letters {
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.pad--held .pad__letters {
+  color: inherit;
 }
 
 @media (max-width: 380px) {
   .keypad {
-    --pad-size: 52px;
+    --pad-cell: 46px;
+    /* 窄屏只收 2px：再往下就回到 40px 以下，按不准数字键。 */
+    --num-row: 42px;
   }
 }
 
-/* 横屏手机上高度是稀缺资源，键区缩一档，把空间还给画面。 */
-@media (max-height: 560px) and (orientation: landscape) {
+/* 矮屏（例如 4.7 寸的 667px）：整块键区收一档，省下的空间还给画面。 */
+@media (max-height: 700px) {
   .keypad {
-    --pad-size: 46px;
-  }
-
-  .player {
-    max-width: none;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: auto minmax(0, 1fr);
-    /* 画面夹在两侧键区中间：横握时左右拇指各在一侧，够得着，
-     * 也不用把手机竖回来。 */
-    grid-template-areas:
-      'bar bar bar'
-      'pad stage aux';
-    gap: 8px;
-    padding: 6px 10px;
-  }
-
-  .player__bar {
-    grid-area: bar;
-  }
-
-  .player__stage {
-    grid-area: stage;
-    min-height: 0;
-  }
-
-  /*
-   * 画面按 3:4 收窄。横屏下宽裕的是宽度、稀缺的是高度 —— 不限宽的话
-   * 内核会拿一个 500×136 的「屏幕」，游戏照这个比例排版，格子小到看不清。
-   * 竖屏不设这条：那里空间够，让游戏自己按可用面积铺满更好。
-   */
-  .player__screen {
-    width: auto;
-    height: 100%;
-    aspect-ratio: 3 / 4;
-    max-width: 100%;
-  }
-
-  /* `display: contents` 把键区两块提到外层网格，各自落到左右两侧。 */
-  .keypad {
-    display: contents;
-  }
-
-  .keypad__main {
-    grid-area: pad;
-    align-self: center;
-  }
-
-  .keypad__soft {
-    grid-area: aux;
-    align-self: center;
-    flex-direction: column;
-    gap: 6px;
+    --pad-cell: 44px;
+    --num-row: 40px;
   }
 
   .keypad__soft > .pad {
-    width: 96px;
-  }
-
-  .player__hint,
-  .player__error {
-    display: none;
+    min-height: 36px;
   }
 }

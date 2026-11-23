@@ -34,21 +34,32 @@ describe('虚拟键区的抬键路径', () => {
     // 卸载分支里必须调用 releaseAll，否则退出运行页时仍按着的键会漏掉
     expect(code).toMatch(/return \(\) => \{[\s\S]*?releaseAll\(\)[\s\S]*?removeEventListener\('blur'/)
   })
-
-  it('切换到数字模式时抬键', () => {
-    // 切模式会卸载一批按钮，它们的 pointerup 永远不会再来。
-    // 这条 effect 是唯一能兜住「按着方向键去点数字」的路径。
-    expect(code).toMatch(/useEffect\(\(\) => \{\s*releaseAll\(\)\s*\}, \[padOpen, releaseAll\]\)/)
-  })
 })
 
-describe('虚拟键区的布局契约', () => {
-  it('数字面板是模式切换，不是追加展开', () => {
-    // 追加式的做法每按一次都会把画面顶上去一段，正在打的时候很难受。
-    // 两种模式共用同一个槽位，键区高度不变。
-    expect(code).toMatch(/padOpen \? \(/)
-    expect(code).toContain('keypad__slot')
-    expect(code).not.toMatch(/padOpen \? \(\s*<>/)
+describe('诺基亚式键区布局', () => {
+  it('数字键盘常驻，不藏在模式切换后面', () => {
+    // 手机的位置感来自「上面导航、下面数字」这个固定的物理排布。
+    // 藏起来就退化成掌机：每次要按数字都得先找切换按钮。
+    expect(code).not.toContain('padOpen')
+    expect(code).not.toContain('keypad__slot')
+    expect(code).toContain('className="keypad__num"')
+  })
+
+  it('12 个数字键都带 T9 字母', () => {
+    // 只靠 keyPressed 收字符的游戏全靠这层提示 —— 真机上它印在键面上。
+    expect((code.match(/control: '/g) ?? []).length).toBe(12)
+    for (const letters of ['ABC', 'DEF', 'GHI', 'JKL', 'MNO', 'PQRS', 'TUV', 'WXYZ']) {
+      expect(code).toContain(`'${letters}'`)
+    }
+  })
+
+  it('导航键是四方向 + 中键，另有独立的 C 键', () => {
+    // clear 不能并进软键：软键由游戏自己定义语义，C 是系统的删除键。
+    for (const control of ['up', 'down', 'left', 'right', 'fire', 'clear']) {
+      expect(code).toContain(`'${control}'`)
+    }
+    expect(code).toContain('keypad__dpad')
+    expect(code).toContain('pad--clear')
   })
 
   it('同一根手指的重复 pointerdown 只算一次按下', () => {

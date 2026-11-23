@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react'
 
 import type { InputControl, KeyPhase } from '@/runtime'
 
@@ -8,43 +15,58 @@ interface KeypadProps {
 
 type PadHandler = (event: ReactPointerEvent<HTMLButtonElement>) => void
 
-const DIGITS = [
-  'num1', 'num2', 'num3',
-  'num4', 'num5', 'num6',
-  'num7', 'num8', 'num9',
-  'star', 'num0', 'pound',
-] as const satisfies readonly InputControl[]
-
-const DIGIT_LABEL: Partial<Record<InputControl, string>> = {
-  star: '*',
-  pound: '#',
+interface NumpadKey {
+  readonly control: InputControl
+  readonly digit: string
+  readonly letters: string
+  readonly label: string
 }
 
 /**
- * 虚拟键区。
+ * 3×4 数字键盘。字母不是装饰 —— J2ME 的 TextBox 只靠 `keyPressed` 收字符，
+ * 用户得知道哪个键能打出哪个字母；真机上这层提示就印在键面上。
+ */
+const NUMPAD: readonly NumpadKey[] = [
+  { control: 'num1', digit: '1', letters: '', label: '数字 1' },
+  { control: 'num2', digit: '2', letters: 'ABC', label: '数字 2 ABC' },
+  { control: 'num3', digit: '3', letters: 'DEF', label: '数字 3 DEF' },
+  { control: 'num4', digit: '4', letters: 'GHI', label: '数字 4 GHI' },
+  { control: 'num5', digit: '5', letters: 'JKL', label: '数字 5 JKL' },
+  { control: 'num6', digit: '6', letters: 'MNO', label: '数字 6 MNO' },
+  { control: 'num7', digit: '7', letters: 'PQRS', label: '数字 7 PQRS' },
+  { control: 'num8', digit: '8', letters: 'TUV', label: '数字 8 TUV' },
+  { control: 'num9', digit: '9', letters: 'WXYZ', label: '数字 9 WXYZ' },
+  { control: 'star', digit: '*', letters: '+', label: '星号 加号' },
+  { control: 'num0', digit: '0', letters: '空格', label: '数字 0 空格' },
+  { control: 'pound', digit: '#', letters: 'aA', label: '井号 切换输入' },
+]
+
+/**
+ * 虚拟键区，形态照诺基亚直板机：
  *
- * 布局按「左手管方向、右手管功能」分，和掌机的握持一致：
+ *   软键行   左软键 ……… 右软键   ← 贴画面两角，位置对应游戏自己画的软键提示
+ *   导航区      ▲
+ *             ◀ OK ▶     [C]     ← 圆形导航键居中，C 键在右侧
+ *               ▼
+ *   数字区    1 2 3 / 4 5 6 / 7 8 9 / * 0 #
  *
- *   软键行  左软键 …… 右软键   ← 贴着画面底边，位置对应游戏自己画的软键提示
- *   主区    十字键 ······ 数字   ← 低频键在右手侧，不抢主操作的位置
- *
- * 数字键是**模式切换**而不是展开追加：展开后它顶掉十字键，键区高度不变。
- * 追加式的做法每按一次都会把画面顶上去一段，正打到一半时很难受。
+ * 上一版是掌机逻辑：十字键偏左、功能键占右边、数字键要点一下才出来。
+ * 手机不是这么用的 —— 数字键盘是常驻的一整块，拇指的位置感来自
+ * 「上面导航、下面数字」这个固定的物理排布，藏起来就没有位置感了。
  *
  * 三条硬要求，都不是「感觉该这样」，而是功能矩阵里的验收项：
  *
  *   1. **多点同按**（F8）：按指针（pointerId）记账，不按「当前按下的键」记账。
  *      用一根全局标记的写法会在第二根手指按下时把第一根的状态覆盖掉。
  *   2. **不卡键**（F10）：`pointercancel` / `lostpointercapture` / 窗口失焦 /
- *      页面隐藏 / 组件卸载 / 切到数字模式，六条路都要抬键。触屏上 pointercancel
- *      很常见（来电、手势返回、系统弹窗），少一条就会留下按下的键。
+ *      页面隐藏 / 组件卸载，五条路都要抬键。触屏上 pointercancel 很常见
+ *      （来电、手势返回、系统弹窗），少一条就会留下按下的键。
  *   3. **不误触滚动**：靠 CSS 的 `touch-action: none` + pointer capture，
  *      手指滑出按钮范围也仍然算这个键，抬起时才结束。
  */
 export function Keypad({ onControl }: KeypadProps) {
   const pointers = useRef(new Map<number, InputControl>())
   const [held, setHeld] = useState<InputControl[]>([])
-  const [padOpen, setPadOpen] = useState(false)
 
   const syncHeld = useCallback(() => {
     setHeld([...new Set(pointers.current.values())])
@@ -104,12 +126,6 @@ export function Keypad({ onControl }: KeypadProps) {
     }
   }, [releaseAll])
 
-  // 切模式会卸载掉一批按钮，它们的 pointerup 永远不会再来 ——
-  // 不主动抬，那些键就在游戏里一直按着。
-  useEffect(() => {
-    releaseAll()
-  }, [padOpen, releaseAll])
-
   const bind = (control: InputControl): { onPointerDown: PadHandler; onPointerUp: PadHandler; onPointerCancel: PadHandler; onLostPointerCapture: PadHandler } => ({
     onPointerDown: (event) => {
       event.preventDefault()
@@ -136,11 +152,11 @@ export function Keypad({ onControl }: KeypadProps) {
     },
   })
 
-  const button = (control: InputControl, label: string, extraClass = '') => (
+  const button = (control: InputControl, label: ReactNode, extraClass = '', ariaLabel?: string) => (
     <button
       type="button"
       className={`pad${held.includes(control) ? ' pad--held' : ''}${extraClass ? ' ' + extraClass : ''}`}
-      aria-label={control.startsWith('num') ? `数字 ${label}` : label}
+      aria-label={ariaLabel ?? (typeof label === 'string' ? label : control)}
       data-control={control}
       {...bind(control)}
       onContextMenu={(event) => event.preventDefault()}
@@ -156,39 +172,31 @@ export function Keypad({ onControl }: KeypadProps) {
         {button('soft2', '右软键', 'pad--soft')}
       </div>
 
-      <div className="keypad__main">
-        <div className="keypad__slot">
-          {padOpen ? (
-            <div className="keypad__num" role="group" aria-label="数字键">
-              {DIGITS.map((control) => (
-                <div key={control} className="keypad__num-cell">
-                  {button(control, DIGIT_LABEL[control] ?? control.slice(3), 'pad--num')}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="keypad__dpad" role="group" aria-label="方向键">
-              <div className="keypad__cell keypad__cell--up">{button('up', '↑', 'pad--arrow')}</div>
-              <div className="keypad__cell keypad__cell--left">{button('left', '←', 'pad--arrow')}</div>
-              <div className="keypad__cell keypad__cell--fire">{button('fire', 'OK', 'pad--fire')}</div>
-              <div className="keypad__cell keypad__cell--right">{button('right', '→', 'pad--arrow')}</div>
-              <div className="keypad__cell keypad__cell--down">{button('down', '↓', 'pad--arrow')}</div>
-            </div>
-          )}
+      <div className="keypad__nav">
+        <div className="keypad__dpad" role="group" aria-label="导航键">
+          <div className="keypad__cell keypad__cell--up">{button('up', '▲', 'pad--arrow', '上')}</div>
+          <div className="keypad__cell keypad__cell--left">{button('left', '◀', 'pad--arrow', '左')}</div>
+          <div className="keypad__cell keypad__cell--fire">{button('fire', 'OK', 'pad--fire', '确认')}</div>
+          <div className="keypad__cell keypad__cell--right">{button('right', '▶', 'pad--arrow', '右')}</div>
+          <div className="keypad__cell keypad__cell--down">{button('down', '▼', 'pad--arrow', '下')}</div>
         </div>
+        {button('clear', 'C', 'pad--clear', '清除')}
+      </div>
 
-        <div className="keypad__tools">
-          <button
-            type="button"
-            className={`pad pad--tool${padOpen ? ' pad--tool-on' : ''}`}
-            aria-pressed={padOpen}
-            aria-label={padOpen ? '切换回方向键' : '切换数字键'}
-            onClick={() => setPadOpen((open) => !open)}
-            onContextMenu={(event) => event.preventDefault()}
-          >
-            {padOpen ? '方向' : '数字'}
-          </button>
-        </div>
+      <div className="keypad__num" role="group" aria-label="数字键">
+        {NUMPAD.map((item) => (
+          <div key={item.control} className="keypad__num-cell">
+            {button(
+              item.control,
+              <>
+                <span className="pad__digit">{item.digit}</span>
+                {item.letters ? <span className="pad__letters">{item.letters}</span> : null}
+              </>,
+              'pad--num',
+              item.label,
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
