@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type MouseEvent,
+} from 'react'
 
 import { attachKeyboardInput } from '@/input/keyboard'
 import { DEFAULT_KEYMAP, KEYMAP_HINT } from '@/input/keymap'
@@ -10,8 +17,18 @@ import {
   type InputControl,
   type KeyPhase,
   type RuntimeState,
+  type SaveFile,
 } from '@/runtime'
+import { createIdbRepository, createSaveService } from '@/saves'
+import { sha256Hex } from '@/shared/hash'
 import { Keypad } from './Keypad'
+
+/**
+ * 仓储是模块级单例：`createIdbRepository` 只建闭包，不打开数据库
+ * （首次读写才 open），所以放在模块顶层不会拖慢首屏，也不会在
+ * 没有 IndexedDB 的环境里立刻炸。
+ */
+const saveService = createSaveService(createIdbRepository())
 
 interface PlayerScreenProps {
   /** 程序包地址。阶段 1 由 URL 参数指定，阶段 2 由游戏库提供 */
@@ -59,12 +76,28 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
   // 而且会先 dispose 掉上一个实例（内核的 iframe 必须整个重建，状态收不回来）。
   const [attempt, setAttempt] = useState(0)
 
+  const [fingerprint, setFingerprint] = useState<string | null>(null)
+  const [canSave, setCanSave] = useState(false)
+  const [savesOpen, setSavesOpen] = useState(false)
+  const [saveBusy, setSaveBusy] = useState(false)
+  const [saveNote, setSaveNote] = useState<string | null>(null)
+
+  /**
+   * 归档写入是串行的。
+   *
+   * 必须串：静默期快照与退出快照可能前后脚到达，并发写同一个 key 会让
+   * 「谁最后生效」取决于事务调度。串起来之后顺序就是事件顺序。
+   * 退出时要等它清空才导航，否则最后一份快照会随页面卸载丢掉。
+   */
+  const archiveChain = useRef<Promise<void>>(Promise.resolve())
+
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
 
     let disposed = false
     let detachKeyboard: (() => void) | undefined
+    let detachSaves: (() => void) | undefined
     let runtime: PluotSorbetRuntime | null = null
 
     void (async () => {
@@ -77,7 +110,18 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
           throw new Error(`程序包请求失败（HTTP ${response.status}）`)
         }
         const bytes = new Uint8Array(await response.arrayBuffer())
-        const fingerprint = await sha256(bytes)
+        const contentHash = await sha256Hex(bytes)
+        if (disposed) return
+        setFingerprint(contentHash)
+
+        /*
+         * 取归档必须在启动之前，而且失败要**中止启动**而不是退化成一局空档。
+         *
+         * 退化看起来更友好，实际是破坏性的：空快照在宿主侧的含义是
+         * 「清空内核现有的 RMS」，于是「读不到旧档」会变成「把旧档删了」。
+         * 读不到就停下来说清楚，比默默把档抹掉好（F15 要求写失败不静默）。
+         */
+        const restore = await saveService.restore(contentHash)
         if (disposed) return
 
         runtime = new PluotSorbetRuntime({ container: host, keymap: DEFAULT_KEYMAP })
@@ -89,6 +133,17 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
           if (!disposed) setMessage(describeErrorCode(event.code))
         })
 
+        // 快照可能来自三处：静默期、退出前、手动导出。全都落归档 ——
+        // 这份归档就是下次启动时灌回内核的东西（见 ADR 0005）。
+        detachSaves = runtime.on('saves', (event) => {
+          const files = event.files
+          archiveChain.current = archiveChain.current
+            .then(() => saveService.archive(contentHash, displayName, files))
+            .catch((cause: unknown) => {
+              console.warn('[saves] 归档写入失败', cause)
+            })
+        })
+
         // 先挂键盘再启动：启动过程有几秒是黑屏，用户这时候按方向键
         // 不该被当成「网页滚了一下」。
         detachKeyboard = attachKeyboardInput({
@@ -96,8 +151,10 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
           send: (control, phase) => runtime?.sendKey(control, phase) ?? false,
         })
 
-        await runtime.load({ fingerprint, displayName, bytes })
+        await runtime.load({ fingerprint: contentHash, displayName, bytes }, { restore })
         if (disposed) return
+        // 能力在 host:ready 之后才准确，所以只能在这里读，不能在渲染时读。
+        setCanSave(runtime.capabilities.saves)
 
         // 内核把 #display 的尺寸当作物理屏幕尺寸，容器为 0 会得到 0×0 画布。
         // 这里再确认一次，把「布局还没算完」变成一个可读的失败，而不是一张黑图。
@@ -116,6 +173,7 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
     return () => {
       disposed = true
       detachKeyboard?.()
+      detachSaves?.()
       runtimeRef.current = null
       void runtime?.dispose()
     }
@@ -124,6 +182,82 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
   const sendKey = useCallback((control: InputControl, phase: KeyPhase) => {
     runtimeRef.current?.sendKey(control, phase)
   }, [])
+
+  /**
+   * 退出。
+   *
+   * 顺序不能省：`stop()` 会让宿主先把快照发出来，归档写入排在
+   * `archiveChain` 里；不等它清空就导航，最后一份快照会随页面卸载丢掉。
+   */
+  const handleExit = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    void (async () => {
+      try {
+        await runtimeRef.current?.stop()
+      } catch {
+        // 停不下来也得让用户走：内核没有优雅退出路径，卸载时 dispose 兜底。
+      }
+      await archiveChain.current
+      window.location.href = location.pathname
+    })()
+  }, [])
+
+  const handleExport = useCallback(async () => {
+    if (!fingerprint) return
+    setSaveBusy(true)
+    setSaveNote(null)
+    try {
+      // 先让内核交一份实时快照：静默期归档有约 4 秒滞后，
+      // 用户刚存完档就点导出时不能等那个周期。
+      const runtime = runtimeRef.current
+      if (runtime?.currentState() === 'running') {
+        const files: readonly SaveFile[] = await runtime.snapshot()
+        await saveService.archive(fingerprint, displayName, files)
+      }
+
+      const blob = await saveService.exportZip(fingerprint, displayName)
+      if (!blob) {
+        setSaveNote('这个游戏还没有写过存档')
+        return
+      }
+      downloadBlob(blob, `${displayName}-存档.zip`)
+      setSaveNote('存档已导出')
+    } catch (cause) {
+      setSaveNote(toUserMessage(cause))
+    } finally {
+      setSaveBusy(false)
+    }
+  }, [fingerprint, displayName])
+
+  const handleImport = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      // 清空 value：同一个文件连选两次也要能再次触发 change。
+      event.target.value = ''
+      if (!file) return
+
+      setSaveBusy(true)
+      setSaveNote(null)
+      try {
+        // 校验通过之前不碰归档（见 saves/format.ts 的说明）。
+        const parsed = await saveService.readZip(file)
+        await saveService.applyImport(parsed.manifest, parsed)
+
+        if (parsed.manifest.fingerprint === fingerprint) {
+          setSaveNote('已导入，重新进入游戏后生效')
+        } else {
+          // 包里有它自己的指纹，就还给它的游戏 —— 不强行塞进当前游戏，
+          // 否则「导入别人的档」会变成「把当前游戏的档换成别人的」。
+          setSaveNote(`这份存档属于「${parsed.manifest.displayName}」，已存到它名下`)
+        }
+      } catch (cause) {
+        setSaveNote(toUserMessage(cause))
+      } finally {
+        setSaveBusy(false)
+      }
+    },
+    [fingerprint],
+  )
 
   const running = state === 'running'
   // 暂停时画面还有内容，遮住反而让人以为崩了；其余状态画面都是黑的。
@@ -137,10 +271,34 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
         <span className={`badge badge--${running ? 'ok' : state === 'failed' ? 'bad' : 'wait'}`}>
           {STATE_LABEL[state]}
         </span>
-        <a className="player__exit" href={location.pathname}>
+        {/* 能力门禁：内核不声明存档能力就不显示这个入口，而不是让人点了才发现不行。 */}
+        {canSave ? (
+          <button
+            type="button"
+            className="player__save"
+            aria-expanded={savesOpen}
+            onClick={() => setSavesOpen((open) => !open)}
+          >
+            存档
+          </button>
+        ) : null}
+        <a className="player__exit" href={location.pathname} onClick={handleExit}>
           返回
         </a>
       </header>
+
+      {savesOpen ? (
+        <div className="player__saves" role="group" aria-label="存档">
+          <button type="button" className="player__saves-item" disabled={saveBusy} onClick={handleExport}>
+            导出存档
+          </button>
+          <label className={`player__saves-item${saveBusy ? ' player__saves-item--busy' : ''}`}>
+            导入存档
+            <input type="file" accept=".zip,application/zip" onChange={handleImport} />
+          </label>
+          {saveNote ? <p className="player__saves-note">{saveNote}</p> : null}
+        </div>
+      ) : null}
 
       {/* 遮罩已经显示过错误了，这里只在「运行中途出错」时才需要一行提示。 */}
       {message && !covered ? (
@@ -192,14 +350,23 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
   )
 }
 
-/** 内容指纹：用于将来的存档隔离与去重，现在只算不用。 */
-async function sha256(bytes: Uint8Array): Promise<string> {
-  if (!globalThis.crypto?.subtle) return 'sha256:unavailable'
-  // Uint8Array 可能是更大 buffer 的视图；digest 要的是整块 ArrayBuffer。
-  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
-  const digest = await crypto.subtle.digest('SHA-256', buffer)
-  const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
-  return `sha256:${hex}`
+/**
+ * 触发一次下载。
+ *
+ * `revokeObjectURL` 不能紧跟着 `click()`：浏览器是异步取 blob 的，
+ * 立刻撤销会让下载拿到一个空文件。给 10 秒足够，且不影响内存
+ * —— 用户不太可能在 10 秒里导出上百次。
+ */
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.rel = 'noopener'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
 /**
