@@ -27,3 +27,42 @@ jobs:
       - run: npm run check:kernels
 
       - run: npm run build
+
+  # 真内核冒烟：把 JAR 喂进 PluotSorbet，验证启动 / 输入 / 退出 / 再次启动。
+  #
+  # 内核产物与测试 JAR 都按设计不入库（GPL-2.0 衍生作品，按发布策略单独处理），
+  # 所以常态 CI 里这个 job 没有东西可跑 —— 它只校验用例本身能被加载。
+  # 这是有意的取舍，不装作覆盖了：真跑发生在本地或发布前，
+  # 命令是 `npm run test:e2e`（先按 README 构建内核）。
+  kernel-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: 检测内核产物
+        id: prereq
+        run: |
+          if [ -f public/kernel/main-all.js ] && [ -f public/assets/sokoban.jar ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=真内核冒烟未执行::public/kernel 或测试 JAR 不在仓库里（二者均不入库）。发布前请在本地构建内核后运行 npm run test:e2e。"
+          fi
+
+      # 即使没有产物也要确认用例能被加载：语法错误、导入路径写错、
+      # 配置失效，这些都该在这里就红，而不是等到有人本地跑才发现。
+      - name: 校验用例可被加载
+        run: npx playwright test --list
+
+      - if: steps.prereq.outputs.ready == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - if: steps.prereq.outputs.ready == 'true'
+        run: npm run test:e2e
