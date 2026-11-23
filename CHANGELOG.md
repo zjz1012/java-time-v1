@@ -7,6 +7,20 @@
 
 ### 新增
 
+- 输入系统：逻辑按键（`up`/`down`/`left`/`right`/`fire`/`soft1`/`soft2`/数字/`*`/`#`/`clear`）、
+  物理键位表（`src/input/keymap.ts`）、外壳键盘监听（`src/input/keyboard.ts`）、
+  虚拟键区（`src/app/Keypad.tsx`，Pointer Events，支持多点同按）。
+- 运行页 `src/app/PlayerScreen.tsx`：画面 + 键区 + 状态，阶段 1 由 `?jar=<url>&name=<名>` 唤起。
+- `RuntimeAdapter.sendKey(control, phase): boolean`（同步，返回是否送达）与
+  `RuntimeCapabilities.keyInput`。`MockRuntime` 同步实现并记录按键，供契约测试断言。
+- `tests/unit/input-keymap.test.ts`：外壳键位表与宿主页 `CONTROL_CODES` 表的一致性；
+  钉住 `119/115/97/100/32` 这几个来自内核源码的取值。
+- `tests/unit/input-keyboard.test.ts`：成对送出、自动重复不转发、一对多物理键配对、
+  失焦抬键、输入框放行。
+- `tests/unit/runtime-input.test.ts`：`sendKey` 在各状态下的送达语义。
+- `docs/decisions/0004-input-path.md`：为什么注入设备键码而不是合成键盘事件。
+- `docs/architecture/kernel-contract.md` §12「输入」：设备键码表、三条必需约束、
+  `GameCanvas(true)` 的已知限制。
 - 宿主页 `public/runtime/host.html`：在 iframe 内装配内核所需的 DOM 与全局对象，
   按 `native → j2me → main-all` 顺序加载，用 postMessage 与外壳通信。
 - `PluotSorbetRuntime`：`RuntimeAdapter` 的真实实现。内核跑在 iframe 里，能力如实声明
@@ -38,7 +52,10 @@
 
 ### 已知问题
 
-- 只验证了「能启动、能出画面」。键位映射、虚拟键区、存档、倍速、游戏库均未接入。
+- 存档、倍速、游戏库、产品界面均未接入；运行页目前由 `?jar=` 参数唤起。
+- 构造 `GameCanvas(true)` 的游戏不可控：内核把 `setSuppressKeyEvents` 实现成全局开关，
+  连 `getKeyStates()` 的键掩码都不再更新（与 JSR 规范不符，见 `kernel-contract.md` §12.3）。
+- `#`（`pound`）没有默认物理键（US 布局上是 Shift+3，与 `Digit3` 撞车），只能在小键盘面板按。
 - 能力缺口：3D（JSR-184 / M3G / M3D）、蓝牙（JSR-82）、无线消息（JSR-120）在自建产物下不可用，
   取舍见 `CORE_EVALUATION.md` §6。
 - 内核为 v2-only，组合作品的天花板是 v2：若日后补 3D 需要引入 GPL-3.0 的 freej2me，

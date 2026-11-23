@@ -8,6 +8,8 @@
 >
 > **2026-11-23 修订**：首版有 5 处错误（加载顺序、DOM 数量、`config.main` 取值、
 > 必需资源只列了 4 件、出画判据），全部是「照文档写就会踩」的那类。修订记录见文末。
+> 同日第二次修订补了 §12（输入通路），并改掉了 §11 里「键盘 = `keydown`」的错误表述 ——
+> 那是第 6 处，而且是最贵的一处：它看起来最不需要验证。
 
 ## 1. 加载顺序（首版写反了）
 
@@ -206,11 +208,83 @@ Canvas.paint → Graphics.render → DisplayDevice.refresh0 → drawImage(offscr
 | 归外壳 | 归内核 |
 |---|---|
 | 18 个 id 的节点与布局 | JVM、类加载、字节码执行 |
-| 键盘 / 触控键区（键码→`keydown`） | 渲染到 `#canvas` |
+| 键位策略（物理键 → 逻辑控制名，见 §12） | 渲染到 `#canvas` |
 | 速度档位（改 `config` 或包时钟） | 音频解码与输出 |
 | 存档读写与隔离 | RMS 语义 |
 | 游戏库、导入、关于页 | JAR → 类解析 |
 | 网络层实现（V1.0 只做拒绝+提示） | `DumbPipe` 协议形状 |
+
+> 首版这里写的是「键盘 / 触控键区（键码→`keydown`）」—— **错的**，
+> 和 §1 的加载顺序一样属于「照文档写就会踩」。键盘不是靠 `keydown` 进内核的，见 §12。
+
+## 12. 输入：游戏动作只能由「设备键码」触发
+
+`main-all.js`（`midp/midp.js`）里有两张对称的表：
+
+```js
+var keyMap  = { 1: 119, 2: 97, 5: 100, 6: 115, 8: 32, 9: 113, 10: 101, 11: 122, 12: 99 }
+var gameKeys = { 119: 1, 97: 2, 115: 6, 100: 5, 32: 8, 113: 9, 101: 10, 122: 11, 99: 12 }
+```
+
+左边是 MIDP 的游戏动作（`UP=1` `LEFT=2` `RIGHT=5` `DOWN=6` `FIRE=8` …），
+右边是**设备键码**。注意右边这些值是 `w a s d 空格 q e z c` 的 **ASCII 码**，
+不是方向键的键码，也不是字母键的 `ev.which`。
+
+| 现象 | 数值 | 结论 |
+|---|---|---|
+| 按 ↑ 时 `ev.which` | 38 | 不在 `gameKeys` 里 |
+| 按 D 时 `ev.which` | **68**（大写 ASCII） | 不在 `gameKeys` 里（表里是 100） |
+| 按 5 时 `ev.which` | 53 | 不在 `gameKeys` 里，但 53 恰好 = `KEY_NUM5`，数字键能用 |
+
+所以**原生键盘通路产生不了任何方向动作**。实测（Sokoban，`Canvas` + `getGameAction`）：
+
+```
+焦点确认在 iframe 内，按 ↑ ↓ ← → W A S D  → 画面均无变化
+内核收到的物理键事件: KeyD which=68 / ArrowUp which=38
+注入 119 / 115 / 100 → 均有动作
+```
+
+唯一可靠的通路是内核自己暴露的注入接口（`midp.js` 的 return 对象，
+全局 `MIDP`）：
+
+```js
+MIDP.sendKeyPress(119)      // 等价于 gameAction UP
+MIDP.sendKeyRelease(119)
+```
+
+上游的屏幕方向键 `game-ui.js` 就是这么写的 —— 那张「小写字母码」的表本来就是
+给它用的，不是给物理键盘用的。
+
+### 12.1 宿主页的键码表
+
+| 逻辑控制 | 设备键码 | 依据 |
+|---|---|---|
+| `up` / `down` / `left` / `right` | 119 / 115 / 97 / 100 | `gameKeys` |
+| `fire` | 32 | `gameKeys` → FIRE |
+| `num0`~`num9` | 48~57 | MIDP `KEY_NUM*` |
+| `star` / `pound` | 42 / 35 | MIDP `KEY_STAR` / `KEY_POUND` |
+| `clear` | 8 | `systemKeyMap` → `SYSTEM_KEY_CLEAR` |
+| `soft1` / `soft2` | -6 / -7 | MIDP `KEY_SOFTKEY1/2`。★ 本内核的构建里**没有导出**这两个常量，但游戏普遍直接比较 -6 / -7（自研推箱子就是），所以原样送 |
+| `gameA`~`gameD` | 113 / 101 / 122 / 99 | `gameKeys`，暂未映射物理键 |
+
+### 12.2 三条必须同时成立的约束
+
+1. **必须在捕获阶段拦下物理键**，并 `stopImmediatePropagation()`。内核自己在冒泡阶段
+   也有 `keydown` 监听，会把 `ev.which` 当设备键码送进去；不掐断，数字键会被送两次，
+   表现成「按一下走两步」。实测拦断后：按数字 5 只有 `[53]`，按 W 只有 `[119]`（不是 87）。
+2. **只拦映射表里的键**，其余放行 —— 否则 `TextField` 的输入与浏览器快捷键全废。
+3. **失焦 / 页面隐藏要抬键**。按住方向键切走窗口时 `keyup` 永远不会到达，
+   JVM 里那只键会一直是按下态，回到游戏角色会自己往一个方向跑。
+
+### 12.3 已知限制：`GameCanvas(true)` 的游戏不可控
+
+内核把 `setSuppressKeyEvents` 实现成了**全局开关**：一旦某款游戏构造
+`GameCanvas(true)`（只用 `getKeyStates()` 轮询、不要 `keyPressed` 回调），
+`sendKeyPress` 会整个短路 —— 连 `getKeyStates()` 依赖的键掩码都不再更新。
+
+JSR 规范说的是「只抑制**游戏键**的 keyPressed 回调」，实现抑制的是全部按键事件。
+这是上游与规范不符之处，本轮不修（要改就得改内核产物）；遇到这类游戏的表现是
+「画面正常但完全无法操作」。
 
 ## 修订记录（2026-11-23）
 
@@ -221,3 +295,4 @@ Canvas.paint → Graphics.render → DisplayDevice.refresh0 → drawImage(offscr
 | DOM 13 个 | 顶层必需 15 个（漏了 splash/download） | 用单引号扫描才发现，双引号正则漏匹配 |
 | config 20 个字段 | 另有 j2me.js 侧 4 个 | 两个文件分开扫描 |
 | 产物 4 件 | 另有 `certs/_main.ks`、`style/emoji/` | 依次撞上 `initFS reject` 与「全黑但已启动」 |
+| 键盘「键码 → `keydown`」（§11） | 必须注入设备键码，见 §12 | 按方向键画面不动，注入 119 才有动作 |
