@@ -1,0 +1,32 @@
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 构建输出
+dist/
+dist-ssr/
+*.local
+coverage/
+*.tsbuildinfo
+
+# 测试产物
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# 内核构建中间物（产物本身按发布策略另行处理，见 docs/provenance/SOURCES.md）
+.work/
+vendor/
+
+# 环境与密钥
+.env
+.env.*
+!.env.example
+
+# 编辑器与系统
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
