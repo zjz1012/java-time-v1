@@ -7,6 +7,26 @@
 
 ### 新增
 
+- **存档（F13 / F14 / F15）：外壳托管，内核文件系统只作运行期缓存**。见
+  `docs/decisions/0005-saves.md`。
+  - 四项实测依据：内核挂在 `pagehide` 上的 `flushAll` 在 iframe 被摘除时**不生效**
+    （回调里才发起的事务既不 complete 也不 abort）；真内核里「写完立刻退出」
+    的存档在 IDB 里查不到、等 26 秒则在；RMS 目录**不区分游戏**
+    （`getSecureFilenameBase` 恒为空、`suiteId` 恒为 1）；外壳直写 `asyncStorage`
+    的 `fs4` 能让内核启动时读到。
+  - 宿主页：`runtime:launch` 新增 `restore`，在装载内核产物**之前**清空并写入
+    `/RecordStore` 子树；静默期自动归档（2 秒一轮、连续两轮无变化才读，
+    避开 `.db`/`.idx` 的半写状态）；`runtime:stop` 先发 `runtime:saves` 再回
+    `stopped`，保证 iframe 拆掉之前快照已经交出去。
+  - `src/saves/`：按内容指纹隔离的 IndexedDB 仓储；零依赖 ZIP（STORE + CRC32，
+    任何解压工具都能打开）；manifest 校验（格式 / 版本 / 越界路径 /
+    逐文件 sha256 / 清单之外的多余条目）。
+  - 运行页：顶栏「存档」入口（导出 / 导入），由 `RuntimeCapabilities.saves` 门禁；
+    导入的包若属于别的游戏，存到它自己名下而不是覆盖当前游戏。
+  - 测试：`saves-format`（11）、`saves-archive`（9）、`runtime-saves`（6），
+    以及 `tests/e2e/saves.spec.ts` —— 4 个真内核场景：写档→退出→重进读回、
+    不点退出也能归档（兜刷新）、导出 ZIP 可解开并重新导入、损坏包被拒且原档不动。
+
 - `tests/e2e/kernel-smoke.spec.ts` + `playwright.config.ts`：**真内核冒烟测试**。
   把 JAR 真的喂进 PluotSorbet，覆盖启动出画、方向输入（键码真的进 JVM）、退出、
   再次启动、启动途中退出五个场景。缺内核产物时显式跳过并打印缺了哪个文件。
@@ -54,6 +74,10 @@
 
 ### 变更
 
+- **`load()` 的语义变了**：现在会在启动前清空内核的 `/RecordStore`，再灌入
+  `LoadOptions.restore` 给的快照（缺省为空 = 全部清空）。这是「外壳托管存档」的
+  必然结果 —— 内核的 RMS 目录不区分游戏，不清就会串味（ADR 0005）。
+  调用方从此有责任提供该游戏的快照，不给就等于「这款游戏没有存档」。
 - **拆实例时主动拒绝挂起的等待**：`#teardown()` 现在以 `ABORTED` 结束正在等的
   `load` / `start`，不再只清计时器。旧写法留下的 Promise 永不 settle ——
   组件卸载后闭包还握着 runtime 与 JAR 字节，「等加载完再继续」的代码再也不执行，
@@ -90,7 +114,11 @@
 
 ### 已知问题
 
-- 存档、倍速、游戏库、产品界面均未接入；运行页目前由 `?jar=` 参数唤起。
+- 倍速、游戏库、产品界面均未接入；运行页目前由 `?jar=` 参数唤起。
+- 存档的静默期归档有约 **4 秒滞后**（要等连续两轮无变化才敢读，避开半写状态）。
+  点「返回」退出不受影响（退出前会强制导一次），直接杀进程/断网则可能丢这几秒。
+- 归档写入失败目前只进 `console.warn`，界面不提示（导入失败是有提示的）。
+  配额超限（`QuotaExceededError`）也没有专门的文案，属于 F15 的未完成部分。
 - 无效的程序包只能靠**超时**判失败：内核遇到非 JAR 或缺少 `MIDlet-1` 时不报错、也不出画，
   外壳除了等满 15 秒之外没有别的信号可用。真正的「包无效」识别要等 F6 做 JAR 预检。
 - 构造 `GameCanvas(true)` 的游戏不可控：内核把 `setSuppressKeyEvents` 实现成全局开关，

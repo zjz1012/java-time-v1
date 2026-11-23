@@ -319,6 +319,96 @@ V1.0 **只做竖屏**，横屏不做适配。但先把结论记在这里：横�
 - **画面尺寸变化会触发整屏重排**，所以运行页整页不滚动。滚动条的存在与否会让
   可用高度在「刚好」和「差 2px」之间反复跳，而每次跳都是一次游戏内重排。
 
+## 14. 存档：RMS 能跑通，但存不住，也不分游戏
+
+RMS 的**语义**是完整可用的：`RecordStore.openRecordStore` / `setRecord` / `getRecord`
+都能跑，自研 MIDlet 实测读写正常。问题在三处实现细节，且全都不报错。
+
+### 14.1 路径：恒为 `/RecordStore/<name>.<ext>`，不含游戏身份
+
+```js
+// MIDletSuiteStorage.getSecureFilenameBase
+return J2ME.newString("")          // 上游注释：we only run a single midlet per installation
+// MIDletSuiteLoader
+var suiteId = (config.midletClassName === "internal") ? -1 : 1
+```
+
+`RecordStoreFile.openRecordStoreFile` 拼的是
+`RECORD_STORE_BASE + "/" + filenameBase + "/" + name + "." + ext`，
+`filenameBase` 是空串、`RECORD_STORE_BASE` 是 `"/RecordStore"`，所以**两个游戏
+用同名 store 就是同一个文件**。隔离必须由外壳做（ADR 0005）。
+
+### 14.2 持久化：写内存，落盘要等，而且兜底是假的
+
+```
+RecordStoreFile.writeBytes → fs.write（只标 dirty）
+RecordStoreFile.commitWrite → fs.flush（写进内存 store）
+每 5 秒 flushAll → syncStore（才写 IndexedDB）
+```
+
+定时器是 `setTimeout(() => setInterval(flushAll, 5000), 20000)` —— **启动 20 秒后**
+才开始。而看起来像保险的那行：
+
+```js
+window.addEventListener("pagehide", flushAll)
+```
+
+在 iframe 被摘除/整页导航时**不生效**：实测 pagehide 回调里才发起的 IDB 事务
+既不 complete 也不 abort，数据读回是 `null`。真内核端到端复核同样：
+
+| 操作 | IDB 里有记录吗 |
+|---|---|
+| 写完立刻退出 | 没有 |
+| 写后等 26 秒再退出 | 有 |
+| 写后显式 `fs.syncStore()` 再退出 | 有 |
+
+★ 这一条是「外壳托管存档」的全部理由。别指望改 `pagehide` 写法来修 ——
+内核产物是 GPL-2.0 的编译结果，`check:provenance` 锁定了它是哪个 commit，
+自己打补丁就等于 fork 一个内核，代价远大于在外壳侧多导一次快照。
+
+### 14.3 读：`fs` 是全局，内存态可直接读
+
+`main-all.js` 里是 `var fs = (function(){ ... })()`，经典脚本下就是 `window.fs`。
+宿主页能同步用这些：
+
+| 接口 | 语义 |
+|---|---|
+| `fs.list(dir)` | 返回 `basename` / `basename/`（目录带尾斜杠）；目录不存在时 **throw** |
+| `fs.stat(path)` | `{ isDir, mtime, size }`，同步 |
+| `fs.getBlob(path)` | 返回**已提交**的 Blob；正在写、未 flush 的拿到旧值（这正是快照要的语义） |
+| `fs.syncStore(cb)` | 立即落盘，回调在事务完成后触发 |
+| `fs.exportStore(cb)` | 整库导出成 JSON（字节变成数字数组，体积膨胀）；`importStore` 会**先 `map.clear()` + `objectStore.clear()`**，会把 `/_main.ks` 与内建根目录一起清掉，**不要用它做单游戏恢复** |
+
+### 14.4 写：直写 `asyncStorage`，但别盲目 `open(ver)`
+
+启动前恢复只能写 IndexedDB —— 内核没有「已 init、MIDlet 未跑」的插入点。
+库名 `asyncStorage`、版本 `4`、表 `fs4`、`keyPath: pathname`：
+
+```js
+// 文件
+{ pathname: '/RecordStore/save.db', isDir: false, parentDir: '/RecordStore',
+  size: 6, mtime: Date.now(), data: Blob }
+// 目录（必须补，否则 fs.exists 查不到父目录）
+{ pathname: '/RecordStore', isDir: true, parentDir: '/', mtime: Date.now() }
+```
+
+★ **不能盲目 `indexedDB.open('asyncStorage', 4)`**：库不存在时它会创建一个
+版本号是 4 却没有任何表的空库，内核随后 open 同版本不会触发 `upgradeneeded`，
+`transaction('fs4')` 直接抛 `NotFoundError` —— 表现是「启动层不动、控制台无报错」。
+宿主页先用 `indexedDB.databases()` 探测存在性，探测不到时放弃本次恢复（`host.html`
+里 `openKernelStore` 这一段有完整注释）。
+
+### 14.5 外壳的两条职责
+
+1. **启动前**：清掉 `fs4` 里 `/RecordStore` 前缀的全部记录，写入该游戏的快照。
+   即使快照为空也要清 —— 空的含义是「这款游戏没有存档」，不是「别动上一款」。
+2. **退出前**：先读快照、发给外壳，再回 `stopped`。外壳收到 `stopped` 就会拆
+   iframe，顺序反了这份快照就发不出来。
+
+静默期归档（每 2 秒比对 `list + stat`，连续两轮无变化才读）是为了兜
+「直接关页面 / 刷新」，代价是约 4 秒滞后。要求「连续两轮无变化」是因为一次存档
+可能跨 `.db` 与 `.idx` 两个文件，中途读会得到索引与数据不一致的快照。
+
 ## 修订记录（2026-11-23）
 
 | 首版写法 | 实测 | 怎么发现的 |
@@ -329,3 +419,4 @@ V1.0 **只做竖屏**，横屏不做适配。但先把结论记在这里：横�
 | config 20 个字段 | 另有 j2me.js 侧 4 个 | 两个文件分开扫描 |
 | 产物 4 件 | 另有 `certs/_main.ks`、`style/emoji/` | 依次撞上 `initFS reject` 与「全黑但已启动」 |
 | 键盘「键码 → `keydown`」（§11） | 必须注入设备键码，见 §12 | 按方向键画面不动，注入 119 才有动作 |
+| 存档「内核自己会持久化」（首版假设） | 必须由外壳托管，见 §14 | 写完立刻退出，IDB 里查不到；pagehide 里的事务不完成 |
