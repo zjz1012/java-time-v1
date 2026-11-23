@@ -70,8 +70,14 @@ tests/         单元 / 集成 / E2E / 测试固件
 
 产品代码与内核产物分开授权，因为二者许可不同：
 
-- **内核**（PluotSorbet 及其编译产物）：`GPL-2.0`，对应源码获取方式见 [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md)。
-- **本仓库自有代码**：许可待委托方确认后填入，当前不得视为已授权分发。
+- **本仓库自有代码**：`GPL-3.0-only`，全文见 [`LICENSE`](LICENSE)。
+- **内核**（PluotSorbet 及其编译产物）：`GPL-2.0`（上游 LICENSE 无 "or later"），
+  不在本仓库内，按 [`scripts/README.md`](scripts/README.md) 从上游源码重建；
+  来源与 commit 见 [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md)。
+- **随包游戏**：自研 6 款（同本仓库许可）+ MIT 98 款（各自保留原版权声明）。
+
+GPL-2.0 与 GPL-3.0 的组合在「是否构成单一结合作品」上存在解释空间，
+本项目的处理方式与待决项记在 [`docs/decisions/0003-license.md`](docs/decisions/0003-license.md)。
 
 第三方组件清单见 [`docs/provenance/THIRD_PARTY_NOTICES.md`](docs/provenance/THIRD_PARTY_NOTICES.md)。
 

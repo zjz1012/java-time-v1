@@ -14,7 +14,13 @@
 - `docs/provenance/SOURCES.md`、`THIRD_PARTY_NOTICES.md`：来源登记台账与第三方声明。
 - `docs/FEATURE_MATRIX.md`：P0 功能矩阵与验收判据。
 
+### 变更
+
+- 自有代码许可定为 `GPL-3.0-only`，补根目录 `LICENSE`（gnu.org 全文）与 ADR 0003。
+- 更正内置游戏授权结论：旧版 45 条仅为清单、JAR 未随包；可复用资产为自研 6 + MIT 98 = 104 款。
+
 ### 已知问题
 
-- 内核未接入。阻塞项：3D/通信能力缺失与 GPL 分发形态需先决策（`CORE_EVALUATION.md` §6）。
-- 自有代码的对外许可尚未确定。
+- 内核未接入。阻塞项：3D/通信能力缺失与分发形态需先决策（`CORE_EVALUATION.md` §6）。
+- GPL-2.0-only 内核与 GPL-3.0-only 自有代码的「是否构成结合作品」待定，见 ADR 0003 末节；
+  方案定下前不分发组合产物（仓库本身不含内核，公开不受影响）。

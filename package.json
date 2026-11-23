@@ -1,6 +1,7 @@
 {
   "name": "java-time-v1",
   "version": "0.1.0",
+  "license": "GPL-3.0-only",
   "private": true,
   "description": "网页版 J2ME（MIDlet）运行与管理工具，移动端优先",
   "type": "module",
