@@ -1,120 +1,223 @@
 # 内核启动契约
 
-> 本文不是抄上游文档，而是**从自建产物里实测反推**得到：对象是
-> `public/kernel/j2me.js`（600 756 B）、`main-all.js`（593 331 B）、`native.js`。
-> 抽取方式为静态扫描 `getElementById` / `querySelector` / `config.*` / 全局声明。
+> 本文不是抄上游文档，而是**从自建产物里实测反推**：对象是
+> `public/kernel/j2me.js`（600 756 B）、`native.js`（125 017 B）、`main-all.js`（593 941 B）。
+> 抽取方式为静态扫描 `getElementById` / `querySelector` / `config.*` / 全局声明，
+> 再在真实浏览器里逐项验证。
 > 凡本文没写的，就是扫描里没出现的 —— 不要凭印象补。
+>
+> **2026-11-23 修订**：首版有 5 处错误（加载顺序、DOM 数量、`config.main` 取值、
+> 必需资源只列了 4 件、出画判据），全部是「照文档写就会踩」的那类。修订记录见文末。
 
-## 1. 加载顺序（不可换）
+## 1. 加载顺序（首版写反了）
 
 ```
-config 脚本（定义全局 var config）
+native.js        Boehm GC / Relooper / wasm 导出（同步 wasm，加载即可用）
   ↓
-j2me.js       JVM + 运行时
+j2me.js          JVM + 运行时，定义 JVM / Native / J2ME / MIDP
   ↓
-native.js     Boehm GC / Relooper（同步 wasm，加载即可用）
-  ↓
-main-all.js   外壳胶水 + 启动链，末尾立即执行
+main-all.js      外壳胶水 + 启动链，末尾立即执行
 ```
+
+**`native.js` 必须最先。** 首版写的是 `j2me → native`，实测不成立：`ASM`（wasm 导出对象）
+是 j2me.js 一启动就要摸的东西，native 在后就会 `ReferenceError: ASM is not defined`，
+而这个错误会把 `Native` 表打断，后续 `main-all.js` 里所有 `Native[...] = ...` 全部变成
+`Cannot set properties of undefined`。
+
+旁证：旧宿主页的装载器 `load-versioned.js` 里，`bld/native.js` 一直排在 `bld/j2me.js` 之前。
 
 `main-all.js` 末尾不是函数声明，而是**顶层语句**：加载完就 `Promise.all(loadingPromises).then(start)`。
-所以前面三件必须已经就位，否则解析期就 ReferenceError。
+所以前面两件必须已经就位，否则解析期就 ReferenceError。
 
-## 2. 全局 `config`：必须在 `main-all.js` 之前存在
+## 2. 四个全局对象：少一个就静默失败
 
-扫描到的全部字段（20 个）：
+内核依赖四个**全局**（不是 module 作用域），缺任何一个的症状都不是「报错」，而是「卡住」。
+
+| 全局 | 谁提供 | 缺失症状 |
+|---|---|---|
+| `config` | 宿主 | 解析期就炸，相对好查 |
+| `APP_BASE_DIR` | 宿主 | `initFS` 里 `load(APP_BASE_DIR + "certs/_main.ks")` 抛 ReferenceError → `Loading failed`，页面上什么都没有 |
+| `MIDlet` | 宿主 | 内核的短信/后台服务实现读 `MIDlet.SMSDialog*`，缺了这一支会抛错 |
+| `ASM` | **由 native.js 的 `Module.asm` 转接** | `ASM._gcMalloc` 全挂，内核无法分配对象 |
+
+★ `ASM` 是 wasm 化之后唯一需要宿主补的桥：上游 asm.js 产物会自己生成 `ASM` 全局，
+而 `emcc 2.x` 的 wasm 产物只挂 `Module["asm"]`。宿主必须在 native.js 加载后、j2me.js 之前做：
+
+```js
+if (typeof window.ASM === 'undefined' && window.Module && window.Module.asm) {
+  window.ASM = window.Module.asm
+}
+```
+
+★ `config` 必须是**经典脚本**定义的全局。用 ES module 时 `var config` 不进全局，
+`main-all.js` 读不到；`window.config = {...}` 或顶层 `var config = {...}` 都行。
+
+## 3. `config` 字段全表
+
+`main-all.js` 消费（20 个）：
 
 | 字段 | 本项目的取值 | 说明 |
 |---|---|---|
-| `main` | 由运行时填 | 主类名或 JAR 名，进 `jvm.startIsolate0(config.main, config.args)` |
-| `midletClassName` | 留空 | 留空时由 `inferMidletClassName()` 从 `MIDlet-1` 推断（本地补丁） |
-| `jars` | `"/games/<name>.data"` | **冒号分隔**，每项走 `load()`；写绝对路径可避开相对基准问题 |
-| `args` | `""` | 传给 MIDlet 的参数 |
-| `deferStartup` | `0` | 非 0 则 `setTimeout` 延后 `run()` |
+| `main` | **`"com/sun/midp/main/MIDletSuiteLoader"`** | **不是**游戏主类，是 MIDP 的启动器。首版写成「主类名或 JAR 名」是错的 |
+| `midletClassName` | `""` | 留空时由 `inferMidletClassName()` 从 `MIDlet-1` 推断（本地补丁） |
+| `jars` | 见 §4 | 类型契约是「有 `split` 方法的字符串」，不是普通字符串 |
+| `args` | `[]` | **必须是数组**，`startIsolate0` 会取 `args.length` |
+| `ignoredFiles` | `new Set()` | **必须是 Set**，内核会对它调 `.has()` |
+| `autosize` | `""` | 空/`no`/`0` → 用 `#display` 的 clientWidth/Height。非空会走 `documentElement` 的 chrome 计算，那是给独立页面用的，iframe 里算错 |
 | `gamepad` | `"no"` | 非 `no`/`0` 时给 `<html>` 加 `gamepad` 类 |
-| `downloadJAD` | `""` | 置空即不走下载路径 |
-| `autosize` / `fontSize` / `language` / `platform` | 默认 | 影响布局与本地化 |
-| 其余 `chRegistered*` / `customEmojiImageFormat` / `ignoredFiles` / `js` / `ts` / `jad` | 不用 | 开发者或测试面板相关 |
+| `downloadJAD` / `jad` | `""` | 置空即不走下载路径 |
+| `deferStartup` | 不设 | 非 0 则 `setTimeout` 延后 `run()` |
+| `platform` | 不设 | 仅用于伪造 UA 字符串（`Nokia503/...`） |
+| `fontSize` / `language` / `customEmojiImageFormat` | 不设 | 默认值可用 |
+| `chRegistered*` / `ts` / `js` | 不设 | 开发者/测试面板相关 |
 
-★ `config` 是 `var` 声明（非 `window.config` 赋值），必须是**全局脚本**定义，
-不能用 ES module —— module 作用域下 `var` 不进全局，`main-all.js` 读不到。
+`j2me.js` 消费（4 个，**首版整组漏了**）：
 
-## 3. DOM：13 个 id + 4 个选择器
+| 字段 | 本项目的取值 | 不设的后果 |
+|---|---|---|
+| `invokeThreshold` | `10` | JIT 编译阈值恒为假，纯解释执行，帧率明显偏低 |
+| `backwardBranchThreshold` | `10` | 同上 |
+| `forceRuntimeCompilation` | 不设（falsy） | — |
+| `ts` | 不设 | — |
+
+## 4. `config.jars` 的坑：blob URL 自带冒号
+
+内核的写法是：
+
+```js
+if (config.jars) { jars = jars.concat(config.jars.split(":")); }
+```
+
+分号是为了支持多包。但宿主用 `URL.createObjectURL` 生成的地址形如
+`blob:http://host/uuid`，**自带两个冒号**，会被拆成 4 段、全部加载失败。
+`data:` URL 同理。
+
+**解法**：给 `config.jars` 传一个只有 `split` 的最小替身。内核只在这一处消费它。
+
+```js
+config.jars = { split: function () { return [objectUrl] } }
+```
+
+## 5. 必需资源共 5 类（首版只写了 4 件 JS）
+
+| 资源 | 位置（相对产物根） | 缺失症状 |
+|---|---|---|
+| 三个 JS | `j2me.js` / `native.js` / `main-all.js` | 直接加载失败 |
+| MIDP 类库 | **`java/classes.data`** | `load()` 404 → `initFS` reject → 停在启动层 |
+| MIDP 证书库 | **`certs/_main.ks`** | 同上，且只在控制台留一行 `Loading failed` |
+| emoji 图集 | **`style/emoji/emoji*.png`** | 见 §7，表现为「启动成功但画面全黑」 |
+
+★ `java/classes.data` 的路径是**写死的**：`main-all.js` 里 `load("java/classes.data")`。
+★ `certs/_main.ks` 与 `style/emoji/` 是构建脚本长期漏收集的两项，首版契约完全没提。
+
+## 6. DOM：18 个 id（首版写 13 个）
 
 `j2me.js` 里 `getElementById` 出现 **0 次** —— 所有 DOM 耦合都在 `main-all.js`。
 
-| id | 次数 | 缺失后果 |
+**顶层无条件访问（缺了在解析期就抛）—— 15 个：**
+
+| id | 次数 | 要求 |
 |---|---|---|
-| `sidebar` | 3 | 抽屉式侧栏，读写频繁 |
+| `display` | 5 | **必须有非零 clientWidth/clientHeight**（被当作物理屏幕尺寸），且是 `splash/download` 两个 screen 的父节点 |
+| `sidebar` | 3 | 内部必须有 `nav ul`（软键菜单会被写进去） |
 | `main` | 3 | 主容器 |
-| `display_title` | 2 | 标题文本（FPS 也挂这里） |
-| `canvas` | 2 | **渲染目标，缺失即无法出画面** |
-| `display` | 1 | canvas 的父层 |
-| `display-container` | 1 | 再上一层 |
-| `drawer` | 1 | 侧栏抽屉 |
+| `display_title` | 2 | 标题文本 |
+| `canvas` | 2 | **渲染目标**，`main-all.js` 直接 `getContext("2d")` |
+| `display-container` | 1 | canvas 定位基准（`offsetLeft/Top`） |
+| `drawer` | 1 | 内部必须有 `header`（读 `offsetHeight`） |
 | `back-button` | 1 | 返回 |
 | `header-drawer-button` | 1 | 抽屉开关 |
 | `header-ok-button` | 1 | 确认键 |
-| `exit-screen` | 1 | 退出确认层 |
-| `lcdui-alert` | 1 | `Alert` 弹出层 |
-| `hidden-textarea-editor` | 1 | `TextBox` 输入承载 |
+| `exit-screen` | 1 | 退出层 |
+| `lcdui-alert` | 1 | **模板节点**，内部必须有 `h1.title` / `p.text` / `progress` |
+| `hidden-textarea-editor` | 1 | 量文本高度用，**不能 display:none**（要读 offsetHeight） |
+| `splash-screen` | 1 | ★ 首版漏了。`splashScreen.style.display = 'block'` 无空检查 |
+| `download-screen` | 1 | ★ 首版漏了。同上，且内部需 `progress.pack-activity` |
 
-选择器：`header`、`nav ul`（2 处）、`progress`、`head`（插样式）。
+**按需访问（只在对应功能被触发时）：** `textarea-editor`、`nokia-fileui-prompt`、
+`sms-listener-prompt`、`download-failure-dialog`。V1.0 不做这些功能，但保留空骨架，
+避免某款游戏触发对应原生方法时因模板为 null 而中断。
 
-> 旧宿主页有约 50 个 id，多出来的那些属于**外壳**（键盘、摇杆、软键条、下载对话框），
-> 不是内核要求。新版按需实现，不必凑齐。
+> 旧宿主页有约 70 个 id。多出来的那些属于**外壳**（键盘、摇杆、软键条、下载对话框、
+> 播放器控件），不是内核要求。
 
-## 4. 相对路径基准（最容易踩的一个）
-
-`load()` 是 `xhr.open("GET", file)`，`file` 原样传入：
-
-```js
-loadingPromises.push(load("java/classes.data", "arraybuffer")…)
-```
-
-`java/classes.data` 是**写死的相对路径**，按文档 base URL 解析。因此：
-
-- 类库必须与宿主页同目录结构：`<base>/java/classes.data`
-- 宿主页放在哪，内核产物就得整体放在哪一层
-- `config.jars` 用绝对路径（`/games/x.data`）可绕开，但类库这条绕不开
-
-**决定**：宿主页放在内核产物目录内（`public/runtime/`），产物安装时整体铺平到同级，
-`public/runtime/{j2me.js, native.js, main-all.js, java/, config/}`。
-
-## 5. 启动链与补丁点
+## 7. 启动链：卡点与补丁
 
 ```
-loadingPromises = [initFS, load(classes.data)]
+loadingPromises = [initFS, load("java/classes.data")]
 loadingMIDletPromises = [getMobileInfo, ...jars.map(load)]
   ↓ Promise.all
 start() → hideDownloadScreen() → jvm.startIsolate0(config.main, config.args)
+  ↓ MIDletSuiteLoader
+new MIDlet() → startApp() → Display.setCurrent(canvas)
+  ↓
+DisplayDevice.gainedForeground0 → hideSplashScreen + 等 emoji
+  ↓
+Canvas.paint → Graphics.render → DisplayDevice.refresh0 → drawImage(offscreen → #canvas)
 ```
 
-四处本地补丁必须同时存在，少一个就「零报错不启动」：
+六个本地补丁必须同时存在，少一个就是「零报错不启动」：
 
-| 补丁 | 不打的症状 |
+| 补丁 | 不打补丁的症状 |
 |---|---|
 | `getMobileInfo` 立即 resolve | 等宿主应答，`start()` 永不执行 |
-| `inferMidletClassName` | 主类为空 → 跑成 `com.ismyway.anyview.Anyview` 之类 |
+| `inferMidletClassName` | 主类为空 → `ClassNotFoundException: 'undefined'` |
 | `hideDownloadScreen()` 进 `start()` | 下载层不消失，画面被盖 |
-| `load("java/classes.data")` | 请求 `classes.jar`，404 |
+| `load("java/classes.data")` 路径 | 请求 `classes.jar`，404 |
+| `removeChild` 父节点守卫 | splash/download 不在 `#display` 下时抛 NotFoundError |
+| **父窗口无 DumbPipe 时不抛错** | ★ 新增。见 §9 |
 
-## 6. 网络：`DumbPipe` 是硬边界
+## 8. 判定「出画面」：两条都不能错
+
+1. **不能在源画布上 `getContext('2d')`。** 内核已持有该上下文，再取一次属于抢渲染上下文，
+   会把画面顶成 0 FPS（本项目在旧宿主上踩过）。要读像素只能 `drawImage` 到离屏小画布再读。
+2. **不能只看 `toDataURL().length`。** 旧结论「空白 PNG 只有几百字节」只对小画布成立：
+   358×638 的**纯黑**画布也能压到 9 KB，长度判据会直接判成「已出画面」。
+
+可靠判据：缩绘到 64×64 离屏画布，统计不同 RGB 的数量 —— 纯色（含纯黑）只有 1 种，
+真实画面几十到几百种。实测 Arena Champion 首屏 **252 种**。
+
+## 9. 网络：`DumbPipe` 是硬边界，且父窗口假设会炸
 
 - 上游 socket / HTTP 走 `DumbPipe.open(...)`，需要**宿主实现**
 - 无宿主时不会抛错，而是**永不回调** —— MIDlet 会静默挂起
-- 旧版的 `evalNative` + `qq.zixing.fun` 通道**不重建**（规划 §1.3）
+- `libs/pipe.js` 里还有一段：iframe 中运行时把 `alert` / `prompt` 覆盖成
+  `window.parent.DumbPipe.handleEvent(...)`。这是 Firefox OS `mozbrowser` 时代的约定，
+  **现代 Web 的父窗口没有 `DumbPipe`**，于是 `TypeError: Cannot read properties of
+  undefined (reading 'handleEvent')` —— 而这个调用点在启动链上，会直接打断 MIDlet。
+  已由补丁 7 降级为 `console.warn`。
 
 因此适配层必须：网络类请求一律在**超时**内失败并给出可读提示，
 不能让它无限等待（`RuntimeErrorCode` 里的 `TIMEOUT` 就是为此）。
 
-## 7. 外壳必须提供 / 内核提供
+## 10. 路径：`<base>` 是唯一的耦合点
+
+宿主页在 `/runtime/host.html`，产物在 `/kernel/`，而 `load("java/classes.data")` 走相对文档 base：
+
+```html
+<base href="../kernel/" />
+```
+
+用相对值而非 `/kernel/`，是为了子路径部署（GitHub Pages 项目页）也能解析。
+宿主自己的脚本全部**内联**，避免被 base 改写到产物目录。
+
+## 11. 外壳必须提供 / 内核提供
 
 | 归外壳 | 归内核 |
 |---|---|
-| 13 个 id 的节点与布局 | JVM、类加载、字节码执行 |
+| 18 个 id 的节点与布局 | JVM、类加载、字节码执行 |
 | 键盘 / 触控键区（键码→`keydown`） | 渲染到 `#canvas` |
 | 速度档位（改 `config` 或包时钟） | 音频解码与输出 |
 | 存档读写与隔离 | RMS 语义 |
 | 游戏库、导入、关于页 | JAR → 类解析 |
 | 网络层实现（V1.0 只做拒绝+提示） | `DumbPipe` 协议形状 |
+
+## 修订记录（2026-11-23）
+
+| 首版写法 | 实测 | 怎么发现的 |
+|---|---|---|
+| 顺序 `j2me → native → main-all` | native 必须最先 | `ASM is not defined` + `Native` 表未定义 |
+| `config.main` 是「主类名或 JAR 名」 | 固定为 `MIDletSuiteLoader` | 读 `startIsolate0` 参数用途 |
+| DOM 13 个 | 顶层必需 15 个（漏了 splash/download） | 用单引号扫描才发现，双引号正则漏匹配 |
+| config 20 个字段 | 另有 j2me.js 侧 4 个 | 两个文件分开扫描 |
+| 产物 4 件 | 另有 `certs/_main.ks`、`style/emoji/` | 依次撞上 `initFS reject` 与「全黑但已启动」 |

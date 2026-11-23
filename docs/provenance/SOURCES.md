@@ -38,6 +38,19 @@
 > GPL-2.0 要求分发衍生作品时提供对应完整源码。上述修改脚本与构建脚本均在本仓库内，
 > 组合起来即可完整重建产物，满足「对应源码」的可获取性要求。
 
+#### 1.1.2 随产物一同收集的资源
+
+内核启动时按写死的路径请求以下文件，缺任何一个都会停在启动阶段（症状各不相同，
+见 `docs/architecture/kernel-contract.md` §5）。它们同属上游 PluotSorbet，许可同上。
+
+| 资源 | 落点 | 内容 | 用途 |
+|---|---|---|---|
+| `java/classes.data` | `<产物>/java/` | 由 `java/classes.jar` 改名（平台会丢弃包内 `.jar`） | MIDP 类库，`load("java/classes.data")` |
+| `certs/_main.ks` | `<产物>/certs/` | 上游 `certs/_main.ks`（796 B） | MIDP 证书密钥库，`initFS` 无条件加载 |
+| `style/emoji/*.png` | `<产物>/style/emoji/` | 上游 emoji 图集（12 张，424 KB，含上游 `LICENSE`） | `DisplayDevice.gainedForeground0` 等它加载完才放行 Java 线程 |
+
+三项均已由 `scripts/build-kernel.sh` 的收集段一并拷贝，`npm run check:kernels` 会检查存在性。
+
 ### 1.2 Boehm.js（Boehm GC 的 Emscripten 移植）
 
 | 字段 | 内容 |
@@ -121,6 +134,9 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 | 测试用 MIDlet | **尚未创建**，将由本仓库 `tests/fixtures/` 源码编译 | 自有 |
 
 **当前仓库不含任何第三方图片、字体、音乐、游戏 JAR。**
+
+（例外说明：内核产物目录下的 `style/emoji/` 属于上游资源，但它落在 `public/kernel/` 内，
+该目录不入库，随产物单独分发，见 §1.1.2。）
 
 ---
 
