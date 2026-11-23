@@ -75,9 +75,9 @@ export function App() {
       </section>
 
       <footer className="shell__footer">
-        <a href="/docs/provenance/SOURCES.md">来源登记</a>
+        <span>内核 GPL-2.0，对应源码见 docs/provenance/SOURCES.md</span>
         <span>·</span>
-        <span>内核 GPL-2.0，对应源码见构建说明</span>
+        <span>关于页在阶段 4 实现</span>
       </footer>
     </main>
   )
