@@ -25,7 +25,11 @@ const ARTIFACTS = [
   { name: 'classes.data', minBytes: 500_000, mustInclude: [] },
 ]
 
-/** 必须不出现的字符串：旧版私有通道与桥接约定。 */
+/**
+ * 必须不出现的字符串：
+ *   - `evalNative`：旧版外壳的桥接函数，其契约结构不复用（ADR 0002）；
+ *   - `zixing`：第三方私有网络层的域名片段（`qq.zixing.fun`），新版零依赖。
+ */
 const FORBIDDEN = ['evalNative', 'zixing']
 
 if (!existsSync(KERNEL_DIR)) {
@@ -66,7 +70,10 @@ for (const spec of ARTIFACTS) {
 
   const sha = createHash('sha256').update(buf).digest('hex').slice(0, 16)
   const entries = spec.name.endsWith('.data') ? countZipEntries(buf) : null
-  rows.push({ name: spec.name, size, sha, entries })
+  // WebSocket 计数作为「是否夹带回连通道」的可见指标，不参与判定：
+  // 不同 emscripten 版本可能在运行时装库里出现该词，硬判会误报。
+  const sockets = (text.match(/WebSocket/g) ?? []).length
+  rows.push({ name: spec.name, size, sha, entries, sockets })
 }
 
 /**
@@ -83,10 +90,13 @@ function countZipEntries(buf) {
   return null
 }
 
+let socketTotal = 0
 for (const r of rows) {
+  socketTotal += r.sockets
   const extra = r.entries === null ? '' : `  ${r.entries} 个 zip 条目`
   console.log(`  ${r.name.padEnd(14)} ${String(r.size).padStart(9)} B  sha256:${r.sha}${extra}`)
 }
+console.log(`  WebSocket 计数合计：${socketTotal}${socketTotal === 0 ? '（无回连通道）' : '（请确认来源）'}`)
 
 if (problems.length > 0) {
   console.error('')
