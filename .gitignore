@@ -15,7 +15,12 @@ playwright-report/
 blob-report/
 .playwright/
 
-# 内核构建中间物（产物本身按发布策略另行处理，见 docs/provenance/SOURCES.md）
+# 内核构建产物：属于构建输出，不入库。
+# 它们是 PluotSorbet（GPL-2.0）的衍生作品，按发布策略单独处理；
+# 重建方式见 scripts/README.md。
+public/kernel/
+
+# 内核构建中间物
 .work/
 vendor/
 

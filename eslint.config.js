@@ -26,4 +26,15 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  {
+    // 构建与自检脚本跑在 Node 里，不是浏览器环境
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+  },
 )

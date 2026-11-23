@@ -1,0 +1,97 @@
+#!/usr/bin/env node
+/**
+ * 内核产物自检。
+ *
+ * 目的不是复现构建（那是 build-kernel.sh 的事），而是拦住两类事故：
+ *   1. 产物是从别处拷来的旧版本 —— 用特征字符串识别；
+ *   2. 产物里混进了应当排除的私有网络层。
+ *
+ * public/kernel/ 不存在时视为「尚未构建」，直接通过（CI 里不构建内核）。
+ *
+ * 退出码：0 通过；1 有问题。
+ */
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const KERNEL_DIR = join(ROOT, 'public/kernel')
+
+const ARTIFACTS = [
+  { name: 'j2me.js', minBytes: 100_000, mustInclude: ['JVM', 'MIDlet'] },
+  { name: 'native.js', minBytes: 100_000, mustInclude: ['Relooper', 'Module.buffer'] },
+  { name: 'main-all.js', minBytes: 300_000, mustInclude: ['inferMidletClassName'] },
+  { name: 'classes.data', minBytes: 500_000, mustInclude: [] },
+]
+
+/** 必须不出现的字符串：旧版私有通道与桥接约定。 */
+const FORBIDDEN = ['evalNative', 'zixing']
+
+if (!existsSync(KERNEL_DIR)) {
+  console.log('[skip] public/kernel/ 不存在，视为未构建内核。')
+  console.log('       需要时运行：bash scripts/fetch-upstream.sh && bash scripts/build-kernel.sh')
+  process.exit(0)
+}
+
+const problems = []
+const rows = []
+
+for (const spec of ARTIFACTS) {
+  const path = join(KERNEL_DIR, spec.name)
+  if (!existsSync(path)) {
+    problems.push(`缺少 ${spec.name}`)
+    continue
+  }
+  const size = statSync(path).size
+  if (size < spec.minBytes) {
+    problems.push(`${spec.name} 体积异常（${size} < ${spec.minBytes}），可能未完整构建`)
+  }
+
+  const buf = readFileSync(path)
+  const latin = buf.toString('latin1')
+  const text = spec.name.endsWith('.data') ? '' : latin
+
+  for (const needle of spec.mustInclude) {
+    if (!text.includes(needle)) {
+      problems.push(`${spec.name} 缺少特征「${needle}」，疑似来自其他构建`)
+    }
+  }
+
+  for (const needle of FORBIDDEN) {
+    if (text.includes(needle)) {
+      problems.push(`${spec.name} 含禁止字符串「${needle}」—— 产物来源不对`)
+    }
+  }
+
+  const sha = createHash('sha256').update(buf).digest('hex').slice(0, 16)
+  const entries = spec.name.endsWith('.data') ? countZipEntries(buf) : null
+  rows.push({ name: spec.name, size, sha, entries })
+}
+
+/**
+ * 读 zip 的中央目录结束记录（EOCD）拿条目总数。
+ * 只读 22 字节的固定尾部，不解析每个条目 —— 这里只需要一个数量级判据。
+ */
+function countZipEntries(buf) {
+  const SIG = 0x06054b50
+  for (let i = buf.length - 22; i >= Math.max(0, buf.length - 66_000); i -= 1) {
+    if (buf.readUInt32LE(i) === SIG) {
+      return buf.readUInt16LE(i + 10)
+    }
+  }
+  return null
+}
+
+for (const r of rows) {
+  const extra = r.entries === null ? '' : `  ${r.entries} 个 zip 条目`
+  console.log(`  ${r.name.padEnd(14)} ${String(r.size).padStart(9)} B  sha256:${r.sha}${extra}`)
+}
+
+if (problems.length > 0) {
+  console.error('')
+  for (const p of problems) console.error(`[fail] ${p}`)
+  process.exit(1)
+}
+
+console.log('[ok] 内核产物自检通过（无旧版私有通道残留）')
