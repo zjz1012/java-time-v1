@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run check:provenance
+
+      # 内核产物不入库，CI 里不构建；脚本在产物缺失时直接跳过。
+      # 真正需要校验产物时，在发布流程里构建后再跑。
+      - run: npm run check:kernels
+
+      - run: npm run build
