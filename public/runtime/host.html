@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover"
+    />
+    <title>J2ME 运行宿主</title>
+
+    <!--
+      ★ base 是整条链上唯一的路径耦合，改动前请读 docs/architecture/kernel-contract.md §4。
+
+      main-all.js 里写死了 load("java/classes.data")，而 load() 是相对「文档 base URL」
+      的 XHR。宿主页在 /runtime/，产物在 /kernel/，因此必须用 base 把相对基准挪过去，
+      否则类库会请求 /runtime/java/classes.data 并 404 —— 而 404 的表现是 loadingPromises
+      被 reject，页面停在启动层、没有任何可见错误。
+
+      用相对值而不是 "/kernel/"，是为了子路径部署（如 GitHub Pages 项目页）也能正确解析。
+    -->
+    <base href="../kernel/" />
+
+    <style>
+      /* 只承担内核需要的布局，不含任何产品样式。父页面负责 iframe 的大小与位置。 */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #000;
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* #display 的 clientWidth/clientHeight 会被内核当成物理屏幕尺寸，
+         所以它必须有非零尺寸，且由 iframe 的尺寸决定。 */
+      #display-container,
+      #display {
+        position: absolute;
+        inset: 0;
+      }
+
+      #display {
+        overflow: hidden;
+      }
+
+      #main {
+        position: absolute;
+        inset: 0;
+      }
+
+      /* 宽高由内核在 updateCanvas 里按 #display 的尺寸设置；这里只管定位与观感。 */
+      #canvas {
+        position: absolute;
+        left: 0;
+        top: 0;
+        display: block;
+        background: #000;
+        image-rendering: pixelated;
+      }
+
+      .screen {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: #0b0e12;
+        color: #c8d6d0;
+        font: 14px/1.5 system-ui, sans-serif;
+      }
+
+      #exit-screen {
+        z-index: 30;
+        background: rgba(0, 0, 0, 0.72);
+      }
+
+      #lcdui-alert {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: none;
+      }
+
+      #back-button {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+      }
+
+      /* 内核用 offsetHeight 量文本高度来估算输入框，所以不能用 display:none。
+         移出视口 + visibility:hidden 才能既不可见又有布局尺寸。 */
+      #hidden-textarea-editor {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        visibility: hidden;
+        white-space: pre-wrap;
+      }
+
+      #textarea-editor {
+        position: absolute;
+        left: 0;
+        top: 0;
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      DOM 骨架按内核实际引用反推，多于必需的部分都是有代码路径会直接取用、且不做空检查。
+      清单与依据见 docs/architecture/kernel-contract.md §3。
+    -->
+    <div id="display-container">
+      <div id="display">
+        <!-- 侧栏：内核会读写 nav ul 并填充软键菜单 -->
+        <section id="sidebar" data-type="sidebar" style="display: none">
+          <header><h1>Menu</h1></header>
+          <nav><ul></ul></nav>
+        </section>
+
+        <section id="drawer" role="region">
+          <!-- header 的 offsetHeight 参与画布高度计算。隐藏时高度为 0，即画面占满。 -->
+          <header style="display: none">
+            <a id="header-drawer-button" href="#drawer" style="display: none"></a>
+            <menu id="header-ok-button" type="toolbar" style="display: none">
+              <button type="button">OK</button>
+            </menu>
+            <h1 id="display_title"></h1>
+          </header>
+
+          <div id="main" role="main">
+            <canvas id="canvas"></canvas>
+
+            <!-- 两个 screen 都是顶层无条件访问的：main-all.js 会直接读它们的 style，
+                 节点缺失会在解析期抛 TypeError，而不是在某个分支里才失败。 -->
+            <div id="download-screen" class="screen">
+              <div>
+                <h1 style="font-size: 15px; margin: 0 0 8px">下载中…</h1>
+                <progress class="pack-activity" value="0" max="100"></progress>
+              </div>
+            </div>
+
+            <div id="splash-screen" class="screen">
+              <div>
+                <h1 style="font-size: 15px; margin: 0 0 8px">启动中…</h1>
+                <progress max="100"></progress>
+              </div>
+            </div>
+
+            <div id="textarea-editor" contenteditable="true" style="display: none"></div>
+            <div id="hidden-textarea-editor"></div>
+            <button id="back-button" type="button" style="display: none">Back</button>
+          </div>
+        </section>
+
+        <div id="exit-screen" class="screen"></div>
+
+        <!-- Alert 的模板节点：内核 clone 它并把副本挂到父节点上，
+             所以 h1.title / p.text / progress 这三个内部结构必须存在。 -->
+        <form id="lcdui-alert">
+          <section>
+            <h1 class="title"></h1>
+            <p class="text"></p>
+            <p><progress style="display: none"></progress></p>
+          </section>
+          <menu>
+            <button class="button0" type="button" style="display: none"></button>
+            <button class="button1" type="button" style="display: none"></button>
+            <button class="button2" type="button" style="display: none"></button>
+          </menu>
+        </form>
+
+        <!-- 按需功能（文件选择框 / 短信验证码）。V1.0 不实现，但保留骨架，
+             避免某款游戏触发对应原生方法时因模板为 null 而中断。 -->
+        <div id="nokia-fileui-prompt" style="display: none">
+          <input type="file" />
+          <button class="recommend" type="button"></button>
+          <button class="cancel" type="button"></button>
+        </div>
+        <div id="sms-listener-prompt" style="display: none">
+          <p class="verificationText"></p>
+          <input type="text" />
+          <p class="timeLeft"></p>
+          <progress class="timeLeftBar" max="100"></progress>
+          <button class="cancel" type="button"></button>
+          <button class="recommend" type="button"></button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /*
+       * 宿主代理：在 iframe 内装配内核、把父页面的指令翻译成内核能懂的东西。
+       *
+       * 三条不可改的约束（都来自产物实测，见 kernel-contract.md）：
+       *   1. 必须是非 module 的经典脚本 —— config 得是全局，module 作用域下 main-all.js 读不到；
+       *   2. 三件产物必须按 j2me → native → main-all 顺序加载，main-all 末尾是立即执行的顶层语句；
+       *   3. 内核没有「启动完成」事件，只能靠画布是否出画来判定。
+       */
+      ;(function () {
+        'use strict'
+
+        var PROTOCOL = 1
+        var START_TIMEOUT_MS = 20000
+        var POLL_INTERVAL_MS = 700
+
+        var parentWindow = window.parent !== window ? window.parent : null
+        var targetOrigin = location.origin
+        var phase = 'boot'
+        var jarUrl = null
+        var pollTimer = 0
+
+        function send(type, payload) {
+          if (!parentWindow) return
+          try {
+            parentWindow.postMessage({ v: PROTOCOL, type: type, payload: payload || {} }, targetOrigin)
+          } catch (err) {
+            // 父窗口已销毁时 postMessage 会抛 InvalidStateError，属于正常收尾，不升级为错误。
+          }
+        }
+
+        function fail(code, message) {
+          if (phase === 'failed') return
+          phase = 'failed'
+          stopPolling()
+          send('runtime:error', { code: code, message: String(message) })
+        }
+
+        function stopPolling() {
+          if (pollTimer) {
+            clearTimeout(pollTimer)
+            pollTimer = 0
+          }
+        }
+
+        /*
+         * 内核的 config 是一个普通全局对象，字段全部是「读到就用」。
+         * 这里只给能确认有消费方的字段，不猜。
+         */
+        function buildConfig(mainClass, jarObjectUrl) {
+          return {
+            // MIDP 的启动器类，不是游戏主类。游戏主类由内核从 MANIFEST 的 MIDlet-1 推断
+            // 后写回 config.midletClassName（本地补丁 inferMidletClassName）。
+            main: 'com/sun/midp/main/MIDletSuiteLoader',
+            midletClassName: mainClass || '',
+            jars: jarsShim(jarObjectUrl),
+            args: [],
+            // 内核会对它调 .has()，必须是 Set，不能是对象或数组。
+            ignoredFiles: new Set(),
+            // 置空：让内核用 #display 的 clientWidth/clientHeight 作为屏幕尺寸。
+            // 非空会走 documentElement 的 chrome 计算，那是给独立页面用的，iframe 里会算错。
+            autosize: '',
+            gamepad: 'no',
+            downloadJAD: '',
+            jad: '',
+            // JIT 阈值：不设也能跑，但会让「多少次调用后编译」恒为假，帧率明显偏低。
+            invokeThreshold: 10,
+            backwardBranchThreshold: 10,
+          }
+        }
+
+        /*
+         * ★ config.jars 的类型契约是「有 split 方法的字符串」，因为它要支持多包：
+         *     jars = jars.concat(config.jars.split(":"))
+         * 而 blob URL 形如 blob:http://host/uuid，自带两个冒号，用字符串会被拆成 4 段、
+         * 全部加载失败（表现为停在启动层，无可见错误）。
+         * 所以传一个只有 split 的最小替身。内核只在这一处消费它，替身足够。
+         */
+        function jarsShim(url) {
+          return {
+            split: function () {
+              return [url]
+            },
+          }
+        }
+
+        function loadScript(url) {
+          return new Promise(function (resolve, reject) {
+            var el = document.createElement('script')
+            el.src = url
+            el.async = false
+            el.onload = function () {
+              resolve()
+            }
+            el.onerror = function () {
+              reject(new Error('脚本加载失败：' + url))
+            }
+            document.head.appendChild(el)
+          })
+        }
+
+        /*
+         * 判定「出画面」。
+         *
+         * ★ 分两步，都不能省：
+         *   1. 不在源画布上 getContext：内核已持有它的 2d 上下文，再取一次属于抢渲染
+         *      上下文，会把画面顶成 0 FPS（本项目在旧宿主上踩过）。
+         *   2. 不能只看 toDataURL 的长度：旧结论「空白 PNG 只有几百字节」是针对小画布的，
+         *      358×638 的纯黑画布也能压到 9 KB，长度判据会直接判成「已出画面」。
+         *
+         * 所以缩绘到一块离屏小画布上统计颜色数：纯色（含纯黑）只有一种，
+         * 真正的游戏画面至少两种颜色。drawImage 只读源画布，不抢上下文。
+         */
+        var probeCanvas = document.createElement('canvas')
+        probeCanvas.width = 64
+        probeCanvas.height = 64
+        var probeCtx = null
+
+        function probePainted(source) {
+          if (!source.width || !source.height) return false
+          if (!probeCtx) {
+            probeCtx = probeCanvas.getContext('2d', { willReadFrequently: true })
+          }
+          if (!probeCtx) return false
+          try {
+            probeCtx.clearRect(0, 0, probeCanvas.width, probeCanvas.height)
+            probeCtx.drawImage(
+              source,
+              0,
+              0,
+              source.width,
+              source.height,
+              0,
+              0,
+              probeCanvas.width,
+              probeCanvas.height,
+            )
+            var data = probeCtx.getImageData(0, 0, probeCanvas.width, probeCanvas.height).data
+            var colors = new Set()
+            for (var i = 0; i < data.length; i += 4) {
+              if (data[i + 3] === 0) continue
+              colors.add((data[i] << 16) | (data[i + 1] << 8) | data[i + 2])
+              // 超过两种就够判定了，不必扫完 4096 个像素。
+              if (colors.size > 1) return true
+            }
+            return false
+          } catch (err) {
+            return false
+          }
+        }
+
+        function watchForFirstPaint() {
+          var canvas = document.getElementById('canvas')
+          var deadline = Date.now() + START_TIMEOUT_MS
+
+          function tick() {
+            pollTimer = 0
+            if (phase === 'failed' || phase === 'stopped') return
+            if (probePainted(canvas)) {
+              phase = 'running'
+              send('runtime:state', { state: 'running', reason: 'first-paint' })
+              return
+            }
+            if (Date.now() > deadline) {
+              fail('TIMEOUT', '内核在 ' + START_TIMEOUT_MS / 1000 + ' 秒内没有产生画面')
+              return
+            }
+            pollTimer = setTimeout(tick, POLL_INTERVAL_MS)
+          }
+
+          pollTimer = setTimeout(tick, POLL_INTERVAL_MS)
+        }
+
+        function boot(jarBytes, options) {
+          if (phase !== 'boot') {
+            fail('INVALID_TRANSITION', '宿主已启动过，不能重复启动')
+            return
+          }
+          if (!(jarBytes instanceof ArrayBuffer) || jarBytes.byteLength === 0) {
+            fail('PACKAGE_INVALID', '没有收到有效的程序包字节')
+            return
+          }
+
+          phase = 'loading'
+          send('runtime:state', { state: 'loading', reason: 'host-boot' })
+
+          jarUrl = URL.createObjectURL(new Blob([jarBytes], { type: 'application/java-archive' }))
+
+          /*
+           * 内核的 initFS 会无条件加载 APP_BASE_DIR + "certs/_main.ks"（MIDP 的证书库），
+           * 少这个全局会直接 ReferenceError，且失败只出现在加载链的 reject 里。
+           * 置空字符串是为了让路径走 <base> 的相对解析，指向产物目录而不是宿主目录。
+           */
+          window.APP_BASE_DIR = ''
+
+          /*
+           * MIDlet 是内核的配置载体，不是游戏本体（名字容易误解）。
+           * 上游外壳在页面里预置了它，内核的短信/后台服务相关实现会直接读这些字段。
+           * V1.0 不做短信与后台，但对象必须存在 —— 缺了会在对应 native 里抛
+           * ReferenceError，且那个调用点不属于主流程，症状是「画面不出来但无报错」。
+           */
+          window.MIDlet = {
+            name: 'aMIDlet',
+            SMSDialogVerificationText: '',
+            SMSDialogTimeout: 300000,
+            SMSDialogTimeoutText: 'left',
+            SMSDialogReceiveFilter: function (message) {
+              return message
+            },
+            wakeUpAlarm: 60000,
+            shouldStartBackgroundService: function () {
+              return false
+            },
+          }
+
+          // config 必须在 main-all.js 之前就位：它在解析期就会读 config.jars / config.main。
+          window.config = buildConfig(
+            options && options.mainClass,
+            jarUrl,
+          )
+
+          /*
+           * 加载顺序由产物的真实依赖决定，不是文档字面顺序：
+           *   native.js 先 —— j2me.js 一执行就会摸 ASM（wasm 导出对象）；
+           *   j2me.js 次   —— 定义 JVM / Native / J2ME 等全局，main-all.js 全靠它们；
+           *   main-all.js 末 —— 末尾是立即执行的顶层语句，前面两件必须已就位。
+           * 旧宿主页的装载器（load-versioned.js）里，顺序同样是 native 在 j2me 之前。
+           */
+          loadScript('native.js')
+            .then(function () {
+              // wasm 版 native 把导出挂在 Module.asm；内核读的是全局 ASM。
+              // 这是 wasm 化之后新旧产物之间唯一的接口差异，必须在这里补齐。
+              if (typeof window.ASM === 'undefined' && window.Module && window.Module.asm) {
+                window.ASM = window.Module.asm
+              }
+              return loadScript('j2me.js')
+            })
+            .then(function () {
+              return loadScript('main-all.js')
+            })
+            .then(function () {
+              // main-all.js 末尾会自己 Promise.all(...).then(start)，这里没有可等待的句柄，
+              // 只能转去观察画布。这正是「必须由外壳主动压超时」的原因。
+              send('runtime:state', { state: 'loading', reason: 'kernel-loaded' })
+              watchForFirstPaint()
+            })
+            .catch(function (err) {
+              fail('INTERNAL', err && err.message ? err.message : err)
+            })
+        }
+
+        function shutdown() {
+          phase = 'stopped'
+          stopPolling()
+          if (jarUrl) {
+            URL.revokeObjectURL(jarUrl)
+            jarUrl = null
+          }
+        }
+
+        window.addEventListener('message', function (event) {
+          // 同源 + 必须来自父窗口。两者缺一不可，否则页面上任何脚本都能驱动内核。
+          if (event.origin !== targetOrigin) return
+          if (!parentWindow || event.source !== parentWindow) return
+
+          var data = event.data
+          if (!data || data.v !== PROTOCOL) {
+            fail('PROTOCOL_MISMATCH', '宿主与外壳的协议版本不一致')
+            return
+          }
+
+          switch (data.type) {
+            case 'runtime:launch':
+              boot(data.payload.bytes, data.payload)
+              break
+            case 'runtime:stop':
+              shutdown()
+              send('runtime:state', { state: 'stopped', reason: 'host-shutdown' })
+              break
+            default:
+              // 未知指令不静默吞掉：静默会让外壳以为指令生效了，问题推迟到更难查的地方。
+              fail('INTERNAL', '未知指令：' + String(data.type))
+          }
+        })
+
+        // 内核的失败大多不进 Promise，而是打 console / 抛在事件回调里。
+        // 不接住的话，外壳只能看到「超时」，丢掉真正的原因。
+        window.addEventListener('error', function (event) {
+          if (phase === 'failed' || phase === 'stopped' || phase === 'running') return
+          // 带上文件与行号：内核对外的错误信息常常只有一句话，不带位置就没法定位。
+          var where = event.filename ? ' @' + String(event.filename).split('/').pop() + ':' + event.lineno : ''
+          fail('INTERNAL', (event.message || '内核脚本错误') + where)
+        })
+        window.addEventListener('unhandledrejection', function (event) {
+          if (phase === 'failed' || phase === 'stopped' || phase === 'running') return
+          var reason = event.reason
+          fail('INTERNAL', reason && reason.message ? reason.message : String(reason))
+        })
+
+        send('host:ready', {
+          protocolVersion: PROTOCOL,
+          // 能力如实声明。没实现的一律 false —— 外壳据此隐藏按钮，而不是让用户点了才发现不行。
+          capabilities: {
+            speedControl: false,
+            audio: false,
+            frameTicks: false,
+            pauseResume: false,
+          },
+        })
+      })()
+    </script>
+  </body>
+</html>
