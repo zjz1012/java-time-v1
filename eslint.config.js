@@ -3,7 +3,8 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'public/**', 'test-results/**'],
+    // .work 是构建中间物与一次性验证脚本的落点（见 .gitignore），不属于交付代码
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'public/**', 'test-results/**', '.work/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

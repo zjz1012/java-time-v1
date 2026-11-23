@@ -4,6 +4,9 @@ import { BaseRuntime } from './adapter'
 import { RuntimeFailure } from './errors'
 import {
   RUNTIME_PROTOCOL_VERSION,
+  isInputControl,
+  type InputControl,
+  type KeyPhase,
   type LoadOptions,
   type MidletPackage,
   type RuntimeCapabilities,
@@ -27,6 +30,7 @@ const DEFAULT_CAPABILITIES: RuntimeCapabilities = {
   audio: false,
   frameTicks: true,
   pauseResume: true,
+  keyInput: true,
 }
 
 /**
@@ -43,6 +47,7 @@ export class MockRuntime extends BaseRuntime {
   protected override readonly emitter = new TypedEmitter<RuntimeEvents>()
 
   readonly #options: MockRuntimeOptions
+  readonly #keys: Array<{ control: InputControl; phase: KeyPhase }> = []
   #speed = 1
   #frameTimer: ReturnType<typeof setInterval> | undefined
   #disposed = false
@@ -119,6 +124,22 @@ export class MockRuntime extends BaseRuntime {
     }
     this.#failIfConfigured('speed')
     this.#speed = rate
+  }
+
+  sendKey(control: InputControl, phase: KeyPhase): boolean {
+    if (this.#disposed) return false
+    // 与真实实现同语义：游戏没在跑时按键无处可送。
+    if (this.currentState() !== 'running') return false
+    if (!isInputControl(control)) return false
+    // 阶段校验也要有：假实现若比真实现宽松，照着它写的 UI 测试会在真内核上翻车。
+    if (phase !== 'press' && phase !== 'release') return false
+    this.#keys.push({ control, phase })
+    return true
+  }
+
+  /** 测试用：取走并清空已记录的按键，避免断言依赖调用顺序之外的状态。 */
+  drainKeys(): Array<{ control: InputControl; phase: KeyPhase }> {
+    return this.#keys.splice(0, this.#keys.length)
   }
 
   async stop(): Promise<void> {

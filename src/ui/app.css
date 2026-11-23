@@ -148,3 +148,201 @@ code {
   border-radius: 4px;
   padding: 1px 5px;
 }
+
+/* ---------- 运行页（阶段 1） ---------- */
+
+.player {
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+}
+
+.player__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.player__meta h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.player__meta p {
+  margin: 2px 0 0;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.badge--ok {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.badge--bad {
+  color: #c0392b;
+  border-color: #c0392b;
+}
+
+.badge--wait {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+
+.player__exit {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.player__error {
+  margin: 0;
+  font-size: 13px;
+  color: #c0392b;
+}
+
+/*
+ * 运行区的尺寸 **就是** J2ME 屏幕的分辨率：内核读 #display 的
+ * clientWidth/clientHeight 当物理屏幕。所以这里不能给 0 高度，
+ * 也不能用 aspect-ratio 让它随内容塌陷。
+ */
+.player__stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.player__screen {
+  width: 100%;
+  height: 100%;
+  max-width: 430px;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.player__hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---------- 虚拟键区 ---------- */
+
+.keypad {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  /* 触屏上必须关掉滚动与手势：否则按住方向键会变成拖动页面。 */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.keypad__dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 46px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 6px;
+}
+
+.keypad__cell {
+  display: flex;
+}
+
+.keypad__cell > .pad {
+  flex: 1;
+}
+
+.keypad__cell--up {
+  grid-area: 1 / 2;
+}
+
+.keypad__cell--left {
+  grid-area: 2 / 1;
+}
+
+.keypad__cell--fire {
+  grid-area: 2 / 2;
+}
+
+.keypad__cell--right {
+  grid-area: 2 / 3;
+}
+
+.keypad__cell--down {
+  grid-area: 3 / 2;
+}
+
+.keypad__aux {
+  display: grid;
+  gap: 6px;
+  grid-auto-rows: 44px;
+}
+
+.keypad__num {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.pad {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: 600 13px/1 system-ui, -apple-system, 'PingFang SC', sans-serif;
+  touch-action: none;
+  cursor: pointer;
+  transition: background-color 60ms linear, transform 60ms linear;
+}
+
+.pad--arrow {
+  font-size: 17px;
+}
+
+/* 用 --surface 做前景：浅色主题下是白字压深绿，深色主题下是深灰字压浅绿，两个方向都够对比。 */
+.pad--held {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  transform: scale(0.97);
+}
+
+.pad--num {
+  min-height: 36px;
+  font-size: 14px;
+}
+
+@media (max-width: 380px) {
+  .keypad__dpad {
+    grid-template-columns: repeat(3, 42px);
+    grid-template-rows: repeat(3, 42px);
+  }
+}

@@ -211,6 +211,56 @@
         var jarUrl = null
         var pollTimer = 0
 
+        /** 物理键 code → 逻辑控制名。由外壳在启动指令里下发，宿主不自己发明。 */
+        var keymap = {}
+        /** 已按下但未抬起的控制名。失焦时靠它把键全部抬起来，否则游戏里会卡住。 */
+        var heldControls = {}
+        var warnedKeys = {}
+
+        /*
+         * 逻辑控制名 → **设备键码**。这张表的每一项都不是猜的，来自内核源码：
+         *
+         *   main-all.js（midp/midp.js）里有两张对称的表：
+         *     keyMap[gameAction] = keyCode     （游戏动作 → 设备键码）
+         *     gameKeys[keyCode]  = gameAction  （设备键码 → 游戏动作）
+         *
+         * 有效的「方向键码」是 119 / 97 / 115 / 100 / 32，也就是**小写字母**
+         * w / a / s / d / 空格 的 ASCII 码，而不是方向键的键码 37~40。
+         *
+         * ★ 这一点必须记清楚：浏览器给字母键的 ev.which 是**大写** ASCII
+         *   （按 D 得到 68，不是 100），方向键给的是 37~40。所以内核自带的
+         *   window keydown 监听永远命中不了方向——实测按方向键、WASD
+         *   画面均无变化，而注入 119/115/100 都有动作。
+         *   上游是靠 game-ui.js 里直接调 MIDP.sendKeyPress(119) 来绕过这件事的。
+         *
+         * 数字键 48~57、星号 42、井号 35 与 MIDP 的 KEY_NUM* / KEY_STAR /
+         * KEY_POUND 一致，可以原样送。8 是 SYSTEM_KEY_CLEAR（退格）。
+         * -6 / -7 是 MIDP 的 KEY_SOFTKEY1 / 2；本内核的构建里没有导出这两个
+         * 常量，但游戏普遍直接比较 -6 / -7（例如自研的推箱子），所以照送。
+         */
+        var CONTROL_CODES = {
+          up: 119,
+          down: 115,
+          left: 97,
+          right: 100,
+          fire: 32,
+          soft1: -6,
+          soft2: -7,
+          clear: 8,
+          star: 42,
+          pound: 35,
+          num0: 48,
+          num1: 49,
+          num2: 50,
+          num3: 51,
+          num4: 52,
+          num5: 53,
+          num6: 54,
+          num7: 55,
+          num8: 56,
+          num9: 57,
+        }
+
         function send(type, payload) {
           if (!parentWindow) return
           try {
@@ -232,6 +282,118 @@
             clearTimeout(pollTimer)
             pollTimer = 0
           }
+        }
+
+        function warnOnce(key, message) {
+          if (warnedKeys[key]) return
+          warnedKeys[key] = true
+          // 用 warn 而不是让它变成运行时错误：按错一个键不该把整个游戏打死，
+          // 但也不能静默 —— 静默会让「键位表与宿主表不同步」这种 bug 永远查不出来。
+          console.warn('[host] ' + message)
+        }
+
+        /*
+         * 把一次逻辑按键翻成内核的设备键码并送进 JVM。
+         *
+         * 返回 false 表示没送出去，原因可能是「还没到时候」：
+         * main-all.js 之前 MIDP 还不存在，JVM 还没有前台 Displayable 时
+         * sendNativeEventToForeground 自己会丢弃。这些都不算错误。
+         */
+        function sendControl(control, keyPhase) {
+          var code = CONTROL_CODES[control]
+          if (typeof code === 'undefined') {
+            warnOnce('control:' + control, '未知控制名：' + control)
+            return false
+          }
+          if (keyPhase !== 'press' && keyPhase !== 'release') {
+            warnOnce('edge:' + keyPhase, '未知按键阶段：' + keyPhase)
+            return false
+          }
+          if (typeof MIDP === 'undefined') return false
+          if (typeof MIDP.sendKeyPress !== 'function' || typeof MIDP.sendKeyRelease !== 'function') {
+            return false
+          }
+
+          if (keyPhase === 'press') {
+            heldControls[control] = true
+            MIDP.sendKeyPress(code)
+          } else {
+            delete heldControls[control]
+            MIDP.sendKeyRelease(code)
+          }
+          return true
+        }
+
+        /*
+         * 抬起所有按下的键。
+         *
+         * 不是防御性冗余：按住方向键时把焦点切走，keyup 永远不会到达，
+         * JVM 里那只键会一直处于按下态 —— 回到游戏时角色会自己往前走。
+         * 窗口失焦、页面隐藏都要走这里。
+         */
+        function releaseAllControls() {
+          for (var control in heldControls) {
+            if (Object.prototype.hasOwnProperty.call(heldControls, control)) {
+              sendControl(control, 'release')
+            }
+          }
+          heldControls = {}
+        }
+
+        /*
+         * 输入框激活时不能拦键：内核用它自己的 contenteditable 做文本输入，
+         * 拦掉会把打字吃掉。
+         */
+        function isTextEditing() {
+          var editor = document.getElementById('textarea-editor')
+          if (!editor) return false
+          if (editor.style.display === 'none') return false
+          return document.activeElement === editor
+        }
+
+        /*
+         * 物理键盘接管。
+         *
+         * ★ 必须用**捕获阶段**，并且 stopImmediatePropagation：
+         *   内核自己在 window 上注册了冒泡阶段的 keydown/keyup，会把 ev.which
+         *   原样当成设备键码送进去。不掐断它，数字键会被送两次
+         *   （原生 53 + 我们注入的 53），表现成按一下走两步。
+         *
+         * 只拦映射表里的键，其余一律放行 —— 这样文本框、浏览器快捷键都还能用。
+         */
+        function onPhysicalKeyDown(event) {
+          var control = keymap[event.code]
+          if (!control) return
+          if (isTextEditing()) return
+
+          event.preventDefault()
+          event.stopImmediatePropagation()
+
+          // 自动重复不转发：内核那边按一次只发一个 keyPressed，
+          // 长按的连续触发由游戏自己用 getKeyStates 轮询（掩码在抬起前一直有效）。
+          if (event.repeat) return
+          sendControl(control, 'press')
+        }
+
+        function onPhysicalKeyUp(event) {
+          var control = keymap[event.code]
+          if (!control) return
+          if (isTextEditing()) return
+
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          sendControl(control, 'release')
+        }
+
+        /** 外壳下发的表不可信：只收「字符串 → 字符串」的项。 */
+        function normalizeKeymap(raw) {
+          var out = {}
+          if (!raw || typeof raw !== 'object') return out
+          for (var code in raw) {
+            if (!Object.prototype.hasOwnProperty.call(raw, code)) continue
+            if (typeof raw[code] === 'string') out[code] = raw[code]
+          }
+          return out
         }
 
         /*
@@ -375,6 +537,8 @@
           phase = 'loading'
           send('runtime:state', { state: 'loading', reason: 'host-boot' })
 
+          keymap = normalizeKeymap(options && options.keymap)
+
           jarUrl = URL.createObjectURL(new Blob([jarBytes], { type: 'application/java-archive' }))
 
           /*
@@ -464,6 +628,11 @@
             case 'runtime:launch':
               boot(data.payload.bytes, data.payload)
               break
+            case 'runtime:key':
+              // 按键不需要等任何响应，也不改变宿主生命周期：
+              // 送不出去（内核还没装配好）就丢掉，外壳不该为一次按键让整局停下来。
+              sendControl(data.payload.control, data.payload.phase)
+              break
             case 'runtime:stop':
               shutdown()
               send('runtime:state', { state: 'stopped', reason: 'host-shutdown' })
@@ -488,6 +657,16 @@
           fail('INTERNAL', reason && reason.message ? reason.message : String(reason))
         })
 
+        // 捕获阶段注册，注册时机不影响优先级：捕获一定先于内核在冒泡阶段的监听。
+        // 此时 keymap 还是空的，所以「还没启动就按了键」不会被误拦。
+        window.addEventListener('keydown', onPhysicalKeyDown, true)
+        window.addEventListener('keyup', onPhysicalKeyUp, true)
+        // 失焦 / 隐藏时抬键，避免 JVM 里留下按下的键（见 releaseAllControls）
+        window.addEventListener('blur', releaseAllControls)
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden) releaseAllControls()
+        })
+
         send('host:ready', {
           protocolVersion: PROTOCOL,
           // 能力如实声明。没实现的一律 false —— 外壳据此隐藏按钮，而不是让用户点了才发现不行。
@@ -496,6 +675,7 @@
             audio: false,
             frameTicks: false,
             pauseResume: false,
+            keyInput: true,
           },
         })
       })()

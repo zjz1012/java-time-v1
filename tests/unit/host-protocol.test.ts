@@ -56,6 +56,44 @@ describe('宿主页与外壳的协议一致性', () => {
   })
 })
 
+describe('宿主页的输入通路', () => {
+  it('认得按键指令', () => {
+    expect(hostHtml).toContain("case 'runtime:key':")
+  })
+
+  it('按键通过 MIDP 的注入接口送进 JVM', () => {
+    // 内核把 sendKeyPress / sendKeyRelease 挂在全局 MIDP 上（midp.js 的 return 对象）。
+    // 这是唯一能产生游戏动作的入口 —— 内核自己的 keydown 监听读的是 ev.which，
+    // 而它期待的是设备键码，两者对不上（见 kernel-contract.md §12）。
+    expect(hostCode).toContain('MIDP.sendKeyPress(')
+    expect(hostCode).toContain('MIDP.sendKeyRelease(')
+  })
+
+  it('物理键监听在捕获阶段，并掐断内核自己那次', () => {
+    // 不掐断就是双发：数字键会被原生送一次（53）、我们注入一次（53），
+    // 表现成按一下走两步。捕获阶段才能稳定抢在冒泡阶段之前。
+    expect(hostCode).toMatch(/addEventListener\('keydown', onPhysicalKeyDown, true\)/)
+    expect(hostCode).toMatch(/addEventListener\('keyup', onPhysicalKeyUp, true\)/)
+    expect(hostCode).toContain('stopImmediatePropagation()')
+  })
+
+  it('失焦与页面隐藏时抬键', () => {
+    // 按住方向键切走窗口，keyup 永远不会来；不补这一手，JVM 里那只键会一直按着。
+    expect(hostCode).toMatch(/addEventListener\('blur', releaseAllControls\)/)
+    expect(hostCode).toContain('document.hidden')
+  })
+
+  it('键位表来自启动指令，不是写死的', () => {
+    expect(hostCode).toContain('normalizeKeymap(')
+    expect(hostCode).toContain('options.keymap')
+  })
+
+  it('能力声明里承认支持按键', () => {
+    // 声明为 true 外壳才会渲染键区；反过来，不声明就会显示一个按了没反应的键区。
+    expect(hostCode).toMatch(/keyInput:\s*true/)
+  })
+})
+
 describe('parseHostEvent', () => {
   it('接受版本一致的合法事件', () => {
     const event = {

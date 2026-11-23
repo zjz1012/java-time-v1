@@ -32,5 +32,16 @@ const USER_FACING: Record<RuntimeErrorCode, string> = {
 }
 
 export function describeFailure(failure: RuntimeFailure): string {
-  return USER_FACING[failure.code]
+  return describeErrorCode(failure.code)
+}
+
+/**
+ * 按错误码取文案。
+ *
+ * 单独暴露是因为 UI 也会从事件里收到 `RuntimeErrorPayload`（只有码，没有异常对象），
+ * 两条路必须有同一套措辞 —— 否则同一个故障在「抛出来的」和「事件里的」场合
+ * 会显示两种说法。
+ */
+export function describeErrorCode(code: RuntimeErrorCode): string {
+  return USER_FACING[code] ?? USER_FACING.INTERNAL
 }

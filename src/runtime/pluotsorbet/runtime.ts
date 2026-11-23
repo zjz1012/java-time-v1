@@ -2,7 +2,10 @@ import { TypedEmitter } from '@/shared/events'
 
 import { BaseRuntime } from '../adapter'
 import { RuntimeFailure } from '../errors'
+import { isInputControl } from '../types'
 import type {
+  InputControl,
+  KeyPhase,
   LoadOptions,
   MidletPackage,
   RuntimeCapabilities,
@@ -14,7 +17,9 @@ import {
   parseHostEvent,
   type HostCommand,
   type HostEvent,
+  type HostKeyCommand,
   type HostLaunchCommand,
+  type PhysicalKeymap,
 } from './protocol'
 
 export interface PluotSorbetRuntimeOptions {
@@ -25,6 +30,11 @@ export interface PluotSorbetRuntimeOptions {
   readonly container: HTMLElement
   /** 宿主页地址；默认按当前文档位置解析，兼容子路径部署 */
   readonly hostUrl?: string
+  /**
+   * 物理键位表。交给宿主页，用于「焦点在游戏画面上」时接管键盘。
+   * 焦点在外壳页面时由外壳自己送 `sendKey`，两条路的表是同一份。
+   */
+  readonly keymap?: PhysicalKeymap
   /** 等宿主页脚本就绪的上限 */
   readonly readyTimeoutMs?: number
   /** 从发出启动指令到首帧出现的上限。内核不会报告「启动完成」，只能等画面 */
@@ -58,6 +68,7 @@ export class PluotSorbetRuntime extends BaseRuntime {
 
   readonly #container: HTMLElement
   readonly #hostUrl: string
+  readonly #keymap: PhysicalKeymap | undefined
   readonly #readyTimeoutMs: number
   readonly #startTimeoutMs: number
 
@@ -66,6 +77,7 @@ export class PluotSorbetRuntime extends BaseRuntime {
     audio: false,
     frameTicks: false,
     pauseResume: false,
+    keyInput: false,
   }
 
   #iframe: HTMLIFrameElement | null = null
@@ -116,6 +128,7 @@ export class PluotSorbetRuntime extends BaseRuntime {
     this.#hostUrl =
       options.hostUrl ??
       new URL('runtime/host.html', document.baseURI).href
+    this.#keymap = options.keymap
     this.#readyTimeoutMs = options.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS
     this.#startTimeoutMs = options.startTimeoutMs ?? DEFAULT_START_TIMEOUT_MS
   }
@@ -184,7 +197,11 @@ export class PluotSorbetRuntime extends BaseRuntime {
     const command: HostLaunchCommand = {
       v: HOST_PROTOCOL_VERSION,
       type: 'runtime:launch',
-      payload: { bytes: this.#packageBytes },
+      payload: {
+        bytes: this.#packageBytes,
+        // 只有给了表才带上这个字段：宿主据此区分「没接管键盘」与「接管了但表是空的」。
+        ...(this.#keymap ? { keymap: this.#keymap } : {}),
+      },
     }
     this.#iframe.contentWindow.postMessage(command, window.location.origin)
 
@@ -211,6 +228,36 @@ export class PluotSorbetRuntime extends BaseRuntime {
 
   async setSpeed(): Promise<void> {
     throw new RuntimeFailure('UNSUPPORTED_CAPABILITY', '当前内核不支持调速')
+  }
+
+  /**
+   * 按键注入。
+   *
+   * 三种情况返回 `false`，都不算错误：
+   *   1. 没有 iframe（已释放或还没 `load`）；
+   *   2. 游戏没在 `running`（加载中 / 已停）—— 按键此时无处可送；
+   *   3. 宿主页还没把 `MIDP` 挂出来（`host:ready` 之后、`main-all.js` 之前）。
+   *
+   * 不排队补发：按键是「此刻」的输入，补发一个 300ms 前的方向键
+   * 只会让角色莫名其妙地动一下。
+   */
+  sendKey(control: InputControl, phase: KeyPhase): boolean {
+    if (this.#disposed) return false
+    if (!isInputControl(control)) return false
+    if (phase !== 'press' && phase !== 'release') return false
+    if (this.currentState() !== 'running') return false
+
+    const frame = this.#iframe
+    const target = frame?.contentWindow
+    if (!frame || !target) return false
+
+    const command: HostKeyCommand = {
+      v: HOST_PROTOCOL_VERSION,
+      type: 'runtime:key',
+      payload: { control, phase },
+    }
+    target.postMessage(command, window.location.origin)
+    return true
   }
 
   async stop(): Promise<void> {

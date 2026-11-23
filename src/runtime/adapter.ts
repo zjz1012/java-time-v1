@@ -1,6 +1,8 @@
 import type { TypedEmitter } from '@/shared/events'
 
 import type {
+  InputControl,
+  KeyPhase,
   LoadOptions,
   MidletPackage,
   RuntimeCapabilities,
@@ -39,6 +41,17 @@ export interface RuntimeAdapter {
 
   /** 设置模拟速率，1 为正常速度。超出内核支持范围时抛 `UNSUPPORTED_CAPABILITY`。 */
   setSpeed(rate: number): Promise<void>
+
+  /**
+   * 注入一次按键。
+   *
+   * **同步**：输入路径每按一次就要走一遍，为一次按键分配一个 Promise 既没必要，
+   * 也会让「按下」与「抬起」的先后顺序在微任务队列里变得不可预测。
+   *
+   * 返回是否送达。返回 `false` 不是错误 —— 游戏没在跑、或者内核还没装配好时，
+   * 按键本来就无处可送。调用方据此决定是否提示，而不是当成异常。
+   */
+  sendKey(control: InputControl, phase: KeyPhase): boolean
 
   /** 停止并释放 MIDlet 占用的资源，状态回到 `stopped`。 */
   stop(): Promise<void>
@@ -86,6 +99,7 @@ export abstract class BaseRuntime implements RuntimeAdapter {
   abstract pause(): Promise<void>
   abstract resume(): Promise<void>
   abstract setSpeed(rate: number): Promise<void>
+  abstract sendKey(control: InputControl, phase: KeyPhase): boolean
   abstract stop(): Promise<void>
   abstract dispose(): Promise<void>
 }

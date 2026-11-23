@@ -24,6 +24,12 @@ public/kernel/
 .work/
 vendor/
 
+# 验证用的 JAR 不入库。
+# 放进去的通常是随手拿来的程序包，来源与授权都没登记过 —— 一旦提交，
+# 「不收录任何缺授权的商业作品」这条就成了空话。要随包分发游戏时，
+# 按 docs/SOURCE_AUDIT.md 的流程登记来源与授权，再单独放行。
+public/assets/*.jar
+
 # 环境与密钥
 .env
 .env.*

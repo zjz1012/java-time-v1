@@ -9,6 +9,46 @@
 /** 桥接协议版本。内核侧与外壳侧不一致时必须在加载阶段就报错，而不是运行到一半才炸。 */
 export const RUNTIME_PROTOCOL_VERSION = 1
 
+/**
+ * 逻辑按键名。
+ *
+ * 外壳只认识这些名字，**不认识也永远不该认识设备键码** —— 键码是内核的实现细节
+ * （PluotSorbet 的 direction 用的是小写字母的 ASCII 码，不是方向键的键码），
+ * 换内核就会变。翻译放在内核侧的宿主页里，见 docs/architecture/kernel-contract.md §12。
+ */
+export const INPUT_CONTROLS = [
+  'up',
+  'down',
+  'left',
+  'right',
+  'fire',
+  'soft1',
+  'soft2',
+  'clear',
+  'star',
+  'pound',
+  'num0',
+  'num1',
+  'num2',
+  'num3',
+  'num4',
+  'num5',
+  'num6',
+  'num7',
+  'num8',
+  'num9',
+] as const
+
+export type InputControl = (typeof INPUT_CONTROLS)[number]
+
+/** `press` 与 `release` 必须成对；只发 `press` 会让游戏里的键一直处于按下态。 */
+export type KeyPhase = 'press' | 'release'
+
+/** 运行时判别。宿主发来的控制名不可信，进内核前要验。 */
+export function isInputControl(value: unknown): value is InputControl {
+  return typeof value === 'string' && (INPUT_CONTROLS as readonly string[]).includes(value)
+}
+
 export type RuntimeState =
   | 'idle'
   | 'loading'
@@ -32,6 +72,11 @@ export interface RuntimeCapabilities {
   readonly frameTicks: boolean
   /** 支持暂停后继续（部分内核只能停不能续） */
   readonly pauseResume: boolean
+  /**
+   * 接受按键注入。为 false 时外壳不渲染键区 ——
+   * 显示一个按了没反应的键区，比不显示更糟。
+   */
+  readonly keyInput: boolean
 }
 
 /** 一个待运行的 MIDlet 包。字节由调用方持有，运行时不得外传。 */
