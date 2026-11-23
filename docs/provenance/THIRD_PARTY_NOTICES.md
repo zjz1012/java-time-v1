@@ -4,8 +4,10 @@
 
 ## 本应用自有代码
 
-本仓库自有代码（`src/`、`scripts/`、`tests/` 及文档）采用 **GPL-3.0-only**，全文见根目录 `LICENSE`。
-理由与「与内核 GPL-2.0-only 的组合问题」记录在 [`../decisions/0003-license.md`](../decisions/0003-license.md)。
+本仓库自有代码（`src/`、`scripts/`、`tests/` 及文档）采用 **GPL-2.0-or-later**，全文见根目录 `LICENSE`
+（与下方 `license-texts/GPL-2.0.txt` 同一份字节）。即：可任选 GPLv2 或更新版本使用与再分发。
+选择 `or-later` 的原因与由此解除的组合分发限制，记录在
+[`../decisions/0003-license.md`](../decisions/0003-license.md)。
 
 以下各组件的许可**与本应用不同**，各自独立：
 
