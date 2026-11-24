@@ -35,6 +35,8 @@
   校验报告。**0 通过、有跳过、有 flaky 都判失败** —— 因为 `playwright test` 对
   「全部 skip」的退出码是 0，「没跑」和「跑过了」不能都是绿色。
   `check-kernel-artifacts.mjs` 新增 `REQUIRE_KERNEL=1`：缺产物直接失败，不再跳过。
+  「准备测试程序包」这一步排在构建内核**之前** —— 缺包是最常见的失败，而构建要
+  20 分钟，排后面等于让人等 20 分钟才知道少了东西。
 - `tests/unit/host-restore.test.ts`：把 `host.html` 的脚本放进 `vm` 跑，证明
   「恢复失败 → `SAVE_RESTORE_FAILED` → 一个内核脚本都不加载」。
 - `tests/unit/saves-import.test.ts`：导入时序（`stop → apply → relaunch`）与
@@ -43,8 +45,8 @@
   结果不变、`subtle` 抛错时降级。
 - `tests/unit/saves-archive.test.ts` 新增「指纹门禁」一组：占位串 / 空串 / 无前缀 /
   大写十六进制 / 非法长度在读、写、导出、导入四个入口都被拒，且**归档被拒时
-  不会覆盖别的游戏** —— 这与「串档之后界面一切正常」正好相反，所以要单独钉住。- 单元测试总数 110 → 177；其中 `saves-format` 11 → 30（构造包全覆盖）、
-  `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 11，
+  不会覆盖别的游戏** —— 这与「串档之后界面一切正常」正好相反，所以要单独钉住。- 单元测试总数 110 → 178；其中 `saves-format` 11 → 30（构造包全覆盖）、
+  `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 12，
   新增 `hash` 13 / `host-restore` 9 / `saves-import` 11。真内核 e2e 仍为 9 项（29 秒）。
 
 - **存档（F13 / F14 / F15）：外壳托管，内核文件系统只作运行期缓存**。见

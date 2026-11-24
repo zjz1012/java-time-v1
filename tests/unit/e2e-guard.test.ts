@@ -139,6 +139,19 @@ describe('「没跑」不能显示成「跑过了」', () => {
     expect(release).toContain('exit 1')
   })
 
+  it('缺测试包要在构建内核之前就失败', () => {
+    // 缺 JAR 是发布验收最常见的失败（首次跑、换 runner、secret 没配），
+    // 而构建内核要 20 分钟。把检查排在构建之后，等于让人等 20 分钟才知道
+    // 「少了东西」—— 这种失败顺序本身就在劝人别跑发布验收。
+    const release = readFileSync(RELEASE, 'utf8')
+    // 用步骤名精确匹配：文件头的注释里也写着「构建内核」。
+    const jar = release.indexOf('- name: 准备测试程序包')
+    const build = release.indexOf('- name: 构建内核')
+    expect(jar, '找不到「准备测试程序包」步骤').toBeGreaterThan(-1)
+    expect(build, '找不到「构建内核」步骤').toBeGreaterThan(-1)
+    expect(jar).toBeLessThan(build)
+  })
+
   it('常态 CI 的 job 名写明「只做加载校验」，不冒充内核验收', () => {
     const ci = readFileSync(CI, 'utf8')
     expect(ci).toContain('仅加载校验')

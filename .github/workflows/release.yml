@@ -52,6 +52,29 @@ jobs:
 
       - run: npm ci
 
+      # ───────────────────────── 测试程序包 ─────────────────────────
+      # test JAR 因授权与来源登记的原因不入库（见 .gitignore），但真内核
+      # E2E 没有它就没有东西可启动。
+      #
+      # ★ 放在构建内核**之前**：缺包是最常见的失败原因（第一次跑、换 runner、
+      #   secret 没配），而构建要 20 分钟。按顺序排下去等于让人等 20 分钟才
+      #   看到「少了东西」——这种失败顺序本身就在劝人别跑发布验收。
+      - name: 准备测试程序包
+        env:
+          JAR_B64: ${{ secrets.E2E_TEST_JAR_B64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p public/assets
+          if compgen -G "public/assets/*.jar" > /dev/null; then
+            echo "使用工作区里已有的测试程序包：$(ls public/assets/*.jar | head -1)"
+          elif [ -n "${JAR_B64:-}" ]; then
+            printf '%s' "$JAR_B64" | base64 -d > public/assets/e2e-test.jar
+            echo "已从仓库 secret E2E_TEST_JAR_B64 还原测试程序包"
+          else
+            echo "::error title=缺少测试程序包::public/assets 下没有任何 JAR，且未配置 secret E2E_TEST_JAR_B64。没有它真内核 E2E 无法执行，发布验收必须失败。"
+            exit 1
+          fi
+
       # ─────────────────────────── 内核 ───────────────────────────
       - name: 安装构建依赖
         if: github.event_name != 'workflow_dispatch' || inputs.kernel == 'build'
@@ -90,25 +113,6 @@ jobs:
         env:
           REQUIRE_KERNEL: '1'
         run: npm run check:kernels
-
-      # ───────────────────────── 测试程序包 ─────────────────────────
-      # test JAR 因授权与来源登记的原因不入库（见 .gitignore），但真内核
-      # E2E 没有它就没有东西可启动。两条来源：工作区已有，或仓库 secret。
-      - name: 准备测试程序包
-        env:
-          JAR_B64: ${{ secrets.E2E_TEST_JAR_B64 }}
-        run: |
-          set -euo pipefail
-          mkdir -p public/assets
-          if compgen -G "public/assets/*.jar" > /dev/null; then
-            echo "使用工作区里已有的测试程序包：$(ls public/assets/*.jar | head -1)"
-          elif [ -n "${JAR_B64:-}" ]; then
-            printf '%s' "$JAR_B64" | base64 -d > public/assets/e2e-test.jar
-            echo "已从仓库 secret E2E_TEST_JAR_B64 还原测试程序包"
-          else
-            echo "::error title=缺少测试程序包::public/assets 下没有任何 JAR，且未配置 secret E2E_TEST_JAR_B64。没有它真内核 E2E 无法执行，发布验收必须失败。"
-            exit 1
-          fi
 
       # ─────────────────────────── 测试 ───────────────────────────
       - name: 安装 Chromium
