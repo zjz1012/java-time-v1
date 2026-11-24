@@ -20,6 +20,11 @@ export {
 } from './archive'
 export { createSaveService, type SaveService } from './service'
 export {
+  archiveFailureOf,
+  describeArchiveFailure,
+  type ArchiveFailure,
+} from './failure'
+export {
   canImport,
   importSavePackage,
   needsRestart,

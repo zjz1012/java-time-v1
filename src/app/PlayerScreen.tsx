@@ -22,13 +22,15 @@ import {
   type SaveFile,
 } from '@/runtime'
 import {
+  archiveFailureOf,
   canImport,
   createIdbRepository,
   createSaveService,
+  describeArchiveFailure,
   importSavePackage,
   needsRestart,
 } from '@/saves'
-import type { ImportOutcome, UnpackResult } from '@/saves'
+import type { ArchiveFailure, ImportOutcome, UnpackResult } from '@/saves'
 import { sha256Hex } from '@/shared/hash'
 import { Keypad } from './Keypad'
 
@@ -97,6 +99,23 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
   const [saveNote, setSaveNote] = useState<string | null>(null)
   /** 已校验、但在等用户确认「这会结束当前这局」的包。 */
   const [pendingImport, setPendingImport] = useState<UnpackResult | null>(null)
+  /**
+   * 最近一次归档写入失败。
+   *
+   * 不为空就意味着「界面上显示的进度」比「磁盘上的进度」新。这时候返回库页
+   * 等于默默丢掉这一段，所以退出要先经过它（见 handleExit）。
+   */
+  const [archiveFailure, setArchiveFailure] = useState<ArchiveFailure | null>(null)
+  /** 因为上次没存上，正在问「确定要放弃吗」。 */
+  const [exitPrompt, setExitPrompt] = useState(false)
+  /**
+   * 问的时候游戏是不是已经停了。
+   *
+   * 两种时机走的是同一个对话框，但能给的出口不同：先问再停，用户还能「返回游戏」；
+   * 停完才发现没存上，那就只剩下重试、导出、放弃 —— 这时候还摆一个「返回游戏」
+   * 是骗人，内核已经关掉了。
+   */
+  const [exitStopped, setExitStopped] = useState(false)
 
   /**
    * 当前状态的最新值。
@@ -123,6 +142,30 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
    * 可能晚到，把刚导入的档盖回去 —— 用户看到的是「导入成功，退出后又变回旧档」。
    */
   const suspendArchive = useRef(false)
+  /**
+   * 失败状态与退出询问的镜像。
+   *
+   * `handleExit` 的依赖数组是空的（它要能直接挂到 `<a>` 上，不该每次渲染都换一个
+   * 函数引用），所以它读不到最新的 state。用 ref 读，才判得准「现在退出会不会
+   * 丢进度」。
+   */
+  const archiveFailureRef = useRef<ArchiveFailure | null>(null)
+  const exitPromptRef = useRef(false)
+  exitPromptRef.current = exitPrompt
+
+  /** 记一次失败。空快照走 `archiveFailureOf` 的 null 分支，只留日志。 */
+  const recordArchiveFailure = useCallback((files: readonly SaveFile[], cause: unknown) => {
+    const failure = archiveFailureOf(files, cause)
+    if (!failure) {
+      // 空快照 = 「删掉这个游戏的存档」，删不掉最多让旧档多留一局，
+      // 不会丢数据 —— 不值得在界面上敲一声，但日志里要留。
+      console.warn('[saves] 清空归档失败', cause)
+      return
+    }
+    archiveFailureRef.current = failure
+    setArchiveFailure(failure)
+    console.warn('[saves] 归档写入失败', cause)
+  }, [])
 
   useEffect(() => {
     const host = hostRef.current
@@ -207,9 +250,20 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
           const files = event.files
           archiveChain.current = archiveChain.current
             .then(() => saveService.archive(contentHash, displayName, files))
-            .catch((cause: unknown) => {
-              console.warn('[saves] 归档写入失败', cause)
+            .then(() => {
+              /*
+               * 只在「真的写进了东西」之后清掉失败标记。
+               *
+               * 空快照成功只说明「库里现在没有这份档」，不代表用户那份进度已经
+               * 落盘 —— 内核在某次退出时读空 RMS 就会给出空快照。拿它清标记，
+               * 等于用一次「什么都没写」证明「写成功了」。
+               */
+              if (files.length > 0) {
+                archiveFailureRef.current = null
+                setArchiveFailure(null)
+              }
             })
+            .catch((cause: unknown) => recordArchiveFailure(files, cause))
         })
 
         // 先挂键盘再启动：启动过程有几秒是黑屏，用户这时候按方向键
@@ -255,7 +309,7 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
     }
     // 依赖 `launch.id` 而不是整个 `launch`：调用方每次渲染都可能重建对象，
     // 按对象比较会让 effect 反复重跑，表现成「游戏启动到一半又重启」。
-  }, [launch.id, attempt])
+  }, [launch.id, attempt, recordArchiveFailure])
 
   const sendKey = useCallback((control: InputControl, phase: KeyPhase) => {
     runtimeRef.current?.sendKey(control, phase)
@@ -266,19 +320,108 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
    *
    * 顺序不能省：`stop()` 会让宿主先把快照发出来，归档写入排在
    * `archiveChain` 里；不等它清空就导航，最后一份快照会随页面卸载丢掉。
+   *
+   * 但**已知写不进去时先别停**：停了再问，用户点「返回游戏」也没有游戏可回。
+   * 所以分两段判：进去先看已知失败，停完再看这一轮退出快照的结果。
+   * `force` 只给「放弃并退出」用 —— 那是用户明确说不要这份进度了。
    */
-  const handleExit = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault()
-    void (async () => {
-      try {
-        await runtimeRef.current?.stop()
-      } catch {
-        // 停不下来也得让用户走：内核没有优雅退出路径，卸载时 dispose 兜底。
-      }
-      await archiveChain.current
-      goLibrary()
-    })()
+  const leaveGame = useCallback(async (force = false) => {
+    if (!force && archiveFailureRef.current) {
+      setExitStopped(false)
+      setExitPrompt(true)
+      return
+    }
+    try {
+      await runtimeRef.current?.stop()
+    } catch {
+      // 停不下来也得让用户走：内核没有优雅退出路径，卸载时 dispose 兜底。
+    }
+    await archiveChain.current
+    if (!force && archiveFailureRef.current) {
+      setExitStopped(true)
+      setExitPrompt(true)
+      return
+    }
+    goLibrary()
   }, [])
+
+  const handleExit = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault()
+      void leaveGame()
+    },
+    [leaveGame],
+  )
+
+  /**
+   * 重试写入。成功就继续退出（如果是从退出询问里点的），失败则更新提示。
+   *
+   * 用 `failure.files` 而不是再去问内核要一份：内核此刻可能已经停了，
+   * 而且我们要抢救的正是那一刻的快照。
+   */
+  const retryArchive = useCallback(async () => {
+    const failure = archiveFailureRef.current
+    if (!failure || !fingerprint) return
+    setSaveBusy(true)
+    setSaveNote(null)
+    try {
+      await saveService.archive(fingerprint, displayName, failure.files)
+      archiveFailureRef.current = null
+      setArchiveFailure(null)
+      if (exitPromptRef.current) {
+        // 存上了就接着走正常退出：还会再取一份退出快照，那条路也会照常判一次。
+        setExitPrompt(false)
+        await leaveGame()
+        return
+      }
+      setSaveNote('存档已重新保存')
+    } catch (cause) {
+      // 失败要看得见：同一个对话框里如果不更新任何东西，用户会以为点没生效。
+      recordArchiveFailure(failure.files, cause)
+      setSaveNote(`重试仍然失败：${describeArchiveFailure(cause).message}`)
+    } finally {
+      setSaveBusy(false)
+    }
+  }, [fingerprint, displayName, recordArchiveFailure, leaveGame])
+
+  /**
+   * 紧急导出。
+   *
+   * 走 `exportFiles`（直接打包内存里那份快照），不碰仓储 —— 仓储正是刚刚
+   * 写不进去的那个东西。要是绕回去读库，导出来的会是旧档：用户拿到一个
+   * 「看起来救回来了」的文件，实际少了这一段进度。
+   */
+  const exportFailedSnapshot = useCallback(async () => {
+    const failure = archiveFailureRef.current
+    if (!failure || !fingerprint) return
+    setSaveBusy(true)
+    setSaveNote(null)
+    try {
+      const blob = await saveService.exportFiles(fingerprint, displayName, failure.files)
+      downloadBlob(blob, `${displayName}-存档（未保存）.zip`)
+      setSaveNote('已下载这份进度。留好它，之后可以从「导入存档」恢复')
+    } catch (cause) {
+      setSaveNote(`导出也失败了：${toUserMessage(cause)}`)
+    } finally {
+      setSaveBusy(false)
+    }
+  }, [fingerprint, displayName])
+
+  /**
+   * 确认放弃。
+   *
+   * 只有走到这里才算「用户知道要丢」。`force` 是有意的：清了标记再走一遍
+   * 普通退出，退出快照仍会试着写一次，写失败还会把对话框弹回来 —— 那等于
+   * 用户点了「放弃」却又被问一遍。
+   */
+  const confirmDiscard = useCallback(() => {
+    archiveFailureRef.current = null
+    setArchiveFailure(null)
+    setExitPrompt(false)
+    void leaveGame(true)
+  }, [leaveGame])
+
+  const cancelExit = useCallback(() => setExitPrompt(false), [])
 
   const handleExport = useCallback(async () => {
     if (!fingerprint) return
@@ -503,6 +646,26 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
           「还在加载」和「已经挂了」—— 这两种情况该做的事完全相反。
           遮罩盖在画面上而不是画面上方另起一块，是为了不给画面挤出高度。
         */}
+        {/*
+          写档失败要在玩游戏的时候就看得见，不能等到退出才拦人。
+          但**不能插进 flex 流**：画面高度就是 J2ME 屏幕分辨率，多一行就把内核
+          重新按新尺寸排一次（存档面板当年就是踩了这个坑，才做成绝对定位）。
+          所以它浮在画面底部 —— 离键区最近，不挡顶部标题栏，也不和存档面板抢位置。
+        */}
+        {archiveFailure && !exitPrompt ? (
+          <div className="player__alert" role="alert">
+            <span className="player__alert-text">{archiveFailure.message}</span>
+            <button
+              type="button"
+              className="player__alert-action"
+              disabled={saveBusy}
+              onClick={retryArchive}
+            >
+              重试
+            </button>
+          </div>
+        ) : null}
+
         {covered ? (
           <div className="player__overlay" role="status">
             {state === 'failed' ? (
@@ -533,6 +696,79 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
       <Keypad onControl={sendKey} />
 
       <p className="player__hint">{KEYMAP_HINT}</p>
+
+      {/*
+        退出前的最后一道确认。
+        只有「最新一次归档确实没写成功」时才会出现 —— 它不是常规流程，
+        所以做成整屏遮罩：这时候玩家正要离开，任何角落里的提示都会被忽略。
+      */}
+      {exitPrompt ? (
+        <div
+          className="player__dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="save-failed-title"
+        >
+          <div className="player__dialog-card">
+            <h2 className="player__dialog-title" id="save-failed-title">
+              存档没有保存成功
+            </h2>
+            <p className="player__dialog-text">
+              {`${archiveFailure?.message ?? '这一局的进度没能写入本地存储'}。${
+                exitStopped
+                  ? '游戏已经停止，这一段进度还没存下来。'
+                  : '现在退出，这一段进度会丢失。'
+              }`}
+            </p>
+            {archiveFailure?.quota ? (
+              <p className="player__dialog-hint">
+                可以清理一些浏览器存储（或换更大的空间）后点「重试保存」。
+              </p>
+            ) : (
+              <p className="player__dialog-hint">
+                可以把这份进度导出成文件，之后从「导入存档」恢复。
+              </p>
+            )}
+            {saveNote ? <p className="player__dialog-note">{saveNote}</p> : null}
+            <div className="player__dialog-actions">
+              <button
+                type="button"
+                className="player__saves-item player__saves-item--primary"
+                disabled={saveBusy}
+                onClick={retryArchive}
+              >
+                重试保存
+              </button>
+              <button
+                type="button"
+                className="player__saves-item"
+                disabled={saveBusy}
+                onClick={exportFailedSnapshot}
+              >
+                导出这次进度
+              </button>
+              {/* 游戏已经停了就没有「回到游戏」可给，摆出来等于骗人。 */}
+              {exitStopped ? null : (
+                <button
+                  type="button"
+                  className="player__saves-item"
+                  disabled={saveBusy}
+                  onClick={cancelExit}
+                >
+                  返回游戏
+                </button>
+              )}
+              <button
+                type="button"
+                className="player__saves-item player__saves-item--danger"
+                onClick={confirmDiscard}
+              >
+                放弃并退出
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

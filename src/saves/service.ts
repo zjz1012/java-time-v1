@@ -50,6 +50,18 @@ export interface SaveService {
   archive(fingerprint: string, displayName: string, files: readonly SaveFile[]): Promise<void>
   /** 打一个 ZIP 包给用户下载。 */
   exportZip(fingerprint: string, displayName: string): Promise<Blob | null>
+  /**
+   * 把**给定的**一份快照直接打包下载，不读仓储。
+   *
+   * 专门给「归档写不进去」那一刻用：用户要抢救的正是这份内存里的快照，
+   * 而仓储此刻恰恰是坏的。走 `exportZip` 会先读库、读到旧档，导出来的
+   * 东西看起来正常、内容却是上一次的 —— 比不给导出更糟。
+   */
+  exportFiles(
+    fingerprint: string,
+    displayName: string,
+    files: readonly SaveFile[],
+  ): Promise<Blob>
   /** 解析并校验一个包。**不写归档** —— 写不写由调用方决定。 */
   readZip(blob: Blob): Promise<UnpackResult>
   /** 把一个已校验的包写进归档。 */
@@ -92,6 +104,12 @@ export function createSaveService(repository: SaveRepository): SaveService {
         displayName: archived.displayName || displayName,
         files: archived.files,
       })
+    },
+
+    async exportFiles(fingerprint, displayName, files) {
+      assertFingerprint(fingerprint)
+      // 空快照没有可抢救的东西：调用方已经把它当「删除存档」处理了。
+      return packSave({ fingerprint, displayName, files })
     },
 
     readZip(blob) {
