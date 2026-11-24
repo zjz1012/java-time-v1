@@ -59,5 +59,11 @@ export function describeErrorCode(code: RuntimeErrorCode, detail?: string): stri
    * 一句「内部错误」等于让人无从下手。
    */
   if (code === 'SAVE_RESTORE_FAILED' && detail) return `${base}原因：${detail}。`
+  /*
+   * 内核缺某项 native 实现时，宿主页会把「缺的是哪个界面控件」翻成人话递上来。
+   * 这句话必须显示出来：用户能做的是换一款游戏，而「当前运行组件不支持这个功能」
+   * 单独看只会让人以为整个应用坏了。实测 104 款里有 6 款死在这里。
+   */
+  if (code === 'UNSUPPORTED_CAPABILITY' && detail) return `${base}${detail}。`
   return base
 }

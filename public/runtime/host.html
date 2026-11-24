@@ -204,6 +204,14 @@
         var PROTOCOL = 1
         var START_TIMEOUT_MS = 20000
         var POLL_INTERVAL_MS = 700
+        /*
+         * 听到「某项 native 完全没实现」之后，还给内核多少时间自行恢复。
+         *
+         * 不是 0：个别游戏在初始化时碰一次缺实现，之后能降级到 Canvas 继续跑。
+         * 也不能太长：这类情况的结局通常是画面永远不出来，死等 20 秒等于让用户
+         * 盯着转圈猜哪里错了。
+         */
+        var MISSING_NATIVE_GRACE_MS = 3000
 
         /*
          * 存档相关的常量。全部来自对内核产物的实测（ADR 0005）：
@@ -249,6 +257,119 @@
         var phase = 'boot'
         var jarUrl = null
         var pollTimer = 0
+
+        /*
+         * ============================ 内核缺陷的两处兜底 ============================
+         *
+         * 这两类问题的共同点：**异常从 Java 线程的 run 循环里逃逸，线程就没了**，
+         * 而浏览器主线程是空闲的 —— 现象不是「页面卡死」，而是「游戏不动了」或
+         * 「一直转圈」。内核是上游 GPL 产物、按设计不入库，改不了产物，
+         * 所以只能在外壳这一侧处理。
+         */
+
+        /*
+         * 一、音频参数的时间钳制。
+         *
+         * 内核的 TonePlayer 用 `current + duration - FADE_TIME` 算淡出起点
+         * （FADE_TIME = 0.1）。播放短于 100ms 的音效时这个差是负数，而 WebAudio
+         * 要求 ramp 的时间必须 >= 0，于是抛 RangeError。
+         *
+         * 栈是 playTone → NativeTonePlayer.nPlayTone → interpret → **Thread.run**。
+         * 实测 City Shield 第一声菜单提示音就把自己钉在主菜单上，之后 19 秒画面
+         * 一帧没变。这类「能跑起来但玩不动」的游戏占比不小 —— 只要它播短音效。
+         *
+         * 代价是这声淡出变成瞬断，比整条线程死掉划算得多。
+         */
+        function clampAudioParamTimes() {
+          var proto = window.AudioParam && window.AudioParam.prototype
+          if (!proto) return false
+          var names = [
+            'linearRampToValueAtTime',
+            'exponentialRampToValueAtTime',
+            'setValueAtTime',
+            'setTargetAtTime',
+            'setValueCurveAtTime',
+          ]
+          var patched = false
+          for (var i = 0; i < names.length; i += 1) {
+            var original = proto[names[i]]
+            if (typeof original !== 'function' || original.guardedTime) continue
+            proto[names[i]] = (function (fn) {
+              var wrapped = function (value, time) {
+                // NaN / 负数 / Infinity 都是内核算出来的非法值，压到 0 让音频继续走。
+                var safe = typeof time === 'number' && isFinite(time) && time > 0 ? time : 0
+                return fn.call(this, value, safe)
+              }
+              wrapped.guardedTime = true
+              return wrapped
+            })(original)
+            patched = true
+          }
+          return patched
+        }
+        clampAudioParamTimes()
+
+        /*
+         * 二、内核缺 native 实现时，别让用户等满 20 秒。
+         *
+         * 缺实现有两种表现：
+         *   - 有 stub 的（`xxx0 not implemented`）打印 warning 后降级返回，游戏能继续；
+         *   - **完全没有的**（`implKey ... is native but does not have an implementation`）
+         *     打印 console.error 后继续跑，但 MIDlet 构造 Form 时就停在那儿，
+         *     画面永远不出来。
+         *
+         * 后一种内核自己吞了，不会冒成 error 事件，只能听 console.error。实测 104 款
+         * 里 6 款属于这一类（ChoiceGroup 列表选择 5 款、Ticker 滚动字幕 1 款），
+         * 全部表现为「转圈 20 秒然后说启动超时」，而超时和真实原因毫无关系。
+         *
+         * 翻成人话而不是原文照抄：implKey 那串类名对用户没有可操作性，他能做的
+         * 是换一款游戏。
+         */
+        var MISSING_NATIVE_HINTS = {
+          ChoiceGroupLFImpl: '列表选择控件（ChoiceGroup）',
+          DisplayableLFImpl: '滚动字幕（Ticker）',
+        }
+        var missingNativeMessage = ''
+        var missingNativeAt = 0
+
+        function describeMissingNative(message) {
+          var match = /implKey\s+([\w\/$]+)\./.exec(message)
+          var owner = ''
+          if (match) {
+            var segments = match[1].split('/')
+            var simple = segments[segments.length - 1].split('$')[0]
+            owner = MISSING_NATIVE_HINTS[simple] || simple
+          }
+          return owner
+            ? '这款游戏用到了' + owner + '，内核没有实现它'
+            : '这款游戏用到了内核没有实现的界面功能'
+        }
+
+        function noteMissingNative(text) {
+          if (missingNativeMessage) return
+          missingNativeMessage = text
+          missingNativeAt = Date.now()
+        }
+
+        // 万一它是以未捕获异常的形式出现（某些内核函数没有走 console.error）
+        window.addEventListener('error', function (event) {
+          var message = event && event.message ? String(event.message) : ''
+          if (message.indexOf('is native but does not have an implementation') === -1) return
+          fail('UNSUPPORTED_CAPABILITY', describeMissingNative(message))
+        })
+
+        var rawConsoleError = console.error
+        console.error = function () {
+          try {
+            var text = Array.prototype.join.call(arguments, ' ')
+            if (text.indexOf('is native but does not have an implementation') !== -1) {
+              noteMissingNative(text)
+            }
+          } catch (err) {
+            /* 记日志本身不该成为新的失败源 */
+          }
+          return rawConsoleError.apply(console, arguments)
+        }
 
         /** 静默期归档用的三个状态：上一轮签名、连续稳定轮数、已归档过的签名。 */
         var idleTimer = 0
@@ -329,6 +450,15 @@
           if (phase === 'failed') return
           phase = 'failed'
           stopPolling()
+          /*
+           * 宿主页的失败原因只在这里出现一次，且常常被外壳换成面向用户的措辞。
+           * 留一行控制台记录，排查「为什么这款游戏起不来」时不用猜。
+           */
+          try {
+            console.warn('[host] fail: ' + code + ' · ' + String(message))
+          } catch (err) {
+            /* 日志不该影响失败路径 */
+          }
           send('runtime:error', { code: code, message: String(message) })
         }
 
@@ -1002,6 +1132,14 @@
               send('runtime:state', { state: 'running', reason: 'first-paint' })
               // 出画之后才开始看存档：之前 fs 还没装配好，读也没意义。
               startIdleWatch()
+              return
+            }
+            /*
+             * 已经知道内核缺这项 native 就别再等满 20 秒 —— 它不会自己好。
+             * 判断放在出画之后：万一游戏能降级继续跑，出画就赢了。
+             */
+            if (missingNativeMessage && Date.now() - missingNativeAt > MISSING_NATIVE_GRACE_MS) {
+              fail('UNSUPPORTED_CAPABILITY', describeMissingNative(missingNativeMessage))
               return
             }
             if (Date.now() > deadline) {
