@@ -147,40 +147,112 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 
 ### 5.1 分组
 
-| 来源 | 款数 | 权利 / 许可 | 上游 | 许可原文 |
-|---|---|---|---|---|
-| 本项目自研（`midlets/src/*.java` 编译产物） | 6 | 自有，随本项目以 GPL-2.0-or-later 分发 | 本仓库 | — |
-| j2me-100-games | 90 | **MIT**，Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors | `https://github.com/agneay/j2me-100-games` | `license-texts/MIT.txt` §1 |
-| my-j2me-projects | 7 | **MIT**，Copyright (c) pisces312 | `https://github.com/pisces312/my-j2me-projects` | `license-texts/MIT.txt` §2 |
-| Shooter | 1 | **MIT**，Copyright (c) 2019 Muhammad Rehan Saeed | `https://github.com/RehanSaeed/Shooter` | `license-texts/MIT.txt` §3 |
-| **合计** | **104** | | | |
+| 来源 | 款数 | 权利 / 许可 | 上游 | 精确版本 | 许可原文 |
+|---|---|---|---|---|---|
+| 本项目自研 | 6 | 自有，随本项目以 **GPL-2.0-or-later** 分发 | 本仓库 `midlets/src/` | 随本仓库 | `LICENSE` |
+| j2me-100-games | 90 | **MIT**，Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors | `https://github.com/agneay/j2me-100-games` | commit `a81f2c5e0396baac10928ff012bbf9d8a2d787e3` | `license-texts/MIT.txt` §1 |
+| my-j2me-projects | 7 | **MIT**，Copyright (c) pisces312 | `https://github.com/pisces312/my-j2me-projects` | commit `67730c5abad898948c052d024921701d7e8caad6` | `license-texts/MIT.txt` §2 |
+| Shooter | 1 | **MIT**，Copyright (c) 2019 Muhammad Rehan Saeed | `https://github.com/RehanSaeed/Shooter` | commit `cab88697a4b4921f72c043067d2b7bd02fe65839` | `license-texts/MIT.txt` §3 |
+| **合计** | **104** | | | | |
 
-自研 6 款：Breakout / Drop / 2048 / Memory / Snake / Sokoban。
-`HelloMidlet` 仅作内核冒烟测试，不进入游戏库，也不随包分发。
+三个 commit 都是**取用当天**各仓库的 HEAD（`agneay` 2026-10-03、`pisces` 2026-04-22、
+`Shooter` 2020-11-06），取用之后上游都没有新提交，因此 HEAD 就是取用的那版。
 
 三份 MIT 是**各自独立授权**（版权人不同），许可正文恰好相同，因此
 `license-texts/MIT.txt` 只留一份正文，但逐一列明三份版权行 —— MIT 要求保留的
 正是「版权声明与许可声明」，缺版权行等于没遵守。
 
-### 5.2 收录边界
+**逐款记录在 [`games.json`](games.json)**：每一款都有
+
+| 字段 | 内容 |
+|---|---|
+| `sha256` | 该 `.data` 的整包摘要 |
+| `classes` | 包内全部 `.class` 条目名 |
+| `source` | 上游仓库、commit、具体路径（如 `games/002-pixel-paddle`）、许可、版权人 |
+| `build` | `compile`（编译上游源码）还是 `repack`（只改容器），以及具体做了什么 |
+
+`npm run check:provenance` 会把这个文件与真实字节逐款对齐：改一个字节、少一个类、
+或记录里的 commit 没写进本文档，都会失败。**哈希一致证明「文件没被换」，
+`source` 里的仓库 + commit + 路径证明「这份文件是谁的」** —— 两件事分开记，
+因为它们回答的是不同的问题。
+
+### 5.2 自研 6 款：源码与构建
+
+| 游戏 | 源码 | 产物 | 编译出的类 |
+|---|---|---|---|
+| 贪吃蛇 | `midlets/src/SnakeMidlet.java` | `snake.data` | `SnakeMidlet` `SnakeCanvas` |
+| 打砖块 | `midlets/src/BreakoutMidlet.java` | `breakout.data` | `BreakoutMidlet` `BreakoutCanvas` |
+| 记忆翻牌 | `midlets/src/MemoryMidlet.java` | `memory.data` | `MemoryMidlet` `MemoryCanvas` |
+| 2048 | `midlets/src/Game2048Midlet.java` | `g2048.data` | `Game2048Midlet` `Game2048Canvas` |
+| 推箱子 | `midlets/src/SokobanMidlet.java` | `sokoban.data` | `SokobanMidlet` `SokobanCanvas` |
+| 坠落方块 | `midlets/src/DropMidlet.java` | `drop.data` | `DropMidlet` `DropCanvas` |
+
+```bash
+node scripts/build-midlets.mjs --structural   # 结构：源码 / 产物 / 清单 / catalog 一致（无需 JDK）
+node scripts/build-midlets.mjs               # 重编译并与产物逐条目比字节（需 JDK + 内核类库）
+node scripts/build-midlets.mjs --install     # 换产物（会改内容指纹，等于让旧存档失效）
+```
+
+最后一条是**故意做得麻烦**的：`.data` 的内容摘要就是存档隔离键，换产物等于让这六款的
+存档全部读不回来。默认只校验、不写回。
+
+`build-midlets.mjs` 的重编译比对照实测通过：JDK 27 + `--release 8`，18 个 class
+与已提交的产物**逐字节相同**。换用别的 JDK 版本时 class 文件可能只差常量池顺序，
+所以这一步不挂在 CI 上（CI 只跑 `--structural`），作为发布前的人工复核步骤保留。
+
+**自研不等于凭空而来，来自外部的东西单独列出：**
+
+| 内容 | 出处 | 用法 |
+|---|---|---|
+| 推箱子的关卡 | David W. Skinner 的 **Microban** 关卡集（2000-02 发布、2000-04 修订），作者明示可自由分发、需署名 | 只使用关卡的文本布局（事实性几何数据），解析 / 绘制 / 撤销全部自研 |
+| 2048 的规则 | Gabriele Cirulli 2014 年的 2048（MIT） | 规则属于思想 / 方法，不受著作权保护；Java 实现从零写，未移植其 JS、未使用其配色 |
+| 「俄罗斯方块」类玩法 | 无（刻意避开） | `DropMidlet` 的注释里记录了 Tetris Holding v. Xio 的边界：换名、10×16 板面、自配色与扁平块型，避开商标与「整体观感」 |
+
+`HelloMidlet` 早期只用于内核冒烟，现冒烟改用推箱子（`tests/e2e/game.ts`），
+它不再随本仓库维护，也不出现在任何分发物里。
+
+### 5.3 98 款 MIT：怎么用的
+
+两种用法的法律含义不同，所以分开记，`games.json` 里也有对应的 `build.kind`：
+
+**编译上游源码（97 款）** —— 上游只给源码，产物是本项目编译的：
+
+| 来源 | 上游路径 | 编译范围 | 说明 |
+|---|---|---|---|
+| j2me-100-games（90） | `games/<NNN>-<slug>/src/` | 该目录 + 共享引擎 `common/src/gamekit/`（9 个类） | manifest 由本项目生成；`MIDlet-Name` 取中文显示名，主类取自上游 |
+| my-j2me-projects（7） | `<Name><ver>/src/` | 该目录 | ★ 上游 `dist/*.jar` 是**混淆过**的（`a.class`、`b.class`…），本项目用的是 `src/` 里的原名（`MineCanvas.class`…） |
+
+**重打包上游 jar（1 款）** —— 字节就是上游的：
+
+| 来源 | 上游文件 | 改了什么 | 没改什么 |
+|---|---|---|---|
+| Shooter | `MobileGame/dist/MobileGame.jar` | 删掉 `.timestamp` 与 `res/Thumbs.db` 两个条目 | 其余 36 个条目与上游**逐字节相同**，`.class` 与素材都没动 |
+
+pisces 那 7 款容易被记错：如果照抄上游 `dist/*.jar`，分发出去的就是混淆产物，
+既不能对应回源码，也和本项目 `games.json` 里的 class 清单对不上。所以记录里
+明确写了 `upstream-source` + 「上游 dist 是混淆产物」这一句。
+
+### 5.4 收录边界
 
 1. **不收录任何缺少分发授权的商业作品。** 上游 `j2me-100-games` 共 100 款，
    本仓库收录 90 款：10 款未收录（6 款与自研玩法重复、1 款扫雷改用 pisces 版、
    3 款赌桌/下注题材因内容合规不收录）。「不收录」指对应的包体与截图都不在包里，
    不是改名后继续分发。
-2. Shooter 为 2006 年竖版卷轴射击，上游仓库带 `src/` 与 `LICENSE`。本仓库只做了
-   「去掉 `res/Thumbs.db` 与 `.timestamp`」的重打包，未改动任何 `.class` 与素材。
-3. 这批 MIT 游戏是**独立程序**，由模拟器内核加载运行，不与内核形成衍生作品关系，
+2. 这批 MIT 游戏是**独立程序**，由模拟器内核加载运行，不与内核形成衍生作品关系，
    因此不改变内核部分（GPL-2.0）的分发要求。
 
-### 5.3 可复核性
+### 5.5 可复核性
 
-- 清单是生成物：`src/library/catalog.ts` 由 `node scripts/import-games.mjs`
-  从上游清单生成，**逐个重算** SHA-256，不抄任何写入的值。
-- 一致性自检：`npm run check:games` 校验「catalog ↔ `public/games/*.data` ↔
-  实际字节」三者一致，多一个少一个都失败（CI 每次跑）。
-- 每个包体的指纹同时是存档隔离键（见 ADR 0005 决策 5），清单里的指纹与真实
-  字节不符时运行页会拒绝启动，不会带着错误的身份去读别人的存档。
+- 清单是生成物：`src/library/catalog.ts` 由 `node scripts/import-games.mjs` 从上游
+  清单生成，**逐个重算** SHA-256，不抄任何写入的值。
+- 一致性自检 `npm run check:games`：校验「catalog ↔ `public/games/*.data` ↔ 实际字节」
+  三者一致，多一个少一个都失败（CI 每次跑）。
+- 来源自检 `npm run check:provenance`：校验 `games.json` 与真实字节逐款对齐，并核对
+  记录里的 commit 都在本文档里。
+- **源码可重建** `npm run verify:midlets`：六款自研从 `midlets/src/` 重编译后与产物
+  逐字节比对（需 JDK）。
+- 每个包体的指纹同时是存档隔离键（见 ADR 0005 决策 5），清单里的指纹与真实字节
+  不符时运行页会拒绝启动，不会带着错误的身份去读别人的存档。
 
 ---
 

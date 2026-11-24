@@ -1,0 +1,4566 @@
+{
+  "note": [
+    "内置游戏的逐款来源登记。由 .work/gen-provenance.mjs 生成，之后由 scripts/check-provenance.mjs 校验。",
+    "sha256 是 public/games/<id>.data 的整包摘要；classes 是包内全部 .class 条目名。",
+    "两者一起构成「这款包就是记录里那一款」的证据 —— 换掉任何一个字节都会不符。",
+    "commit 是取用时上游 HEAD；三个上游仓库在取用之后都没有新提交。"
+  ],
+  "generatedAt": "2026-11-24",
+  "games": [
+    {
+      "id": "snake",
+      "file": "snake.data",
+      "sha256": "a2cb55c90193ef1affc2072dc737718f374a256448f39bab129b70e29058578c",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/SnakeMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "SnakeCanvas.class",
+        "SnakeMidlet.class"
+      ]
+    },
+    {
+      "id": "breakout",
+      "file": "breakout.data",
+      "sha256": "0e483471852ef498c62b096ee97a2a6a2c4167583f522fa46a4237acd2a81ca4",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/BreakoutMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "BreakoutCanvas.class",
+        "BreakoutMidlet.class"
+      ]
+    },
+    {
+      "id": "memory",
+      "file": "memory.data",
+      "sha256": "2869249c86d91b70cebf91885a8caf48f7e57ca50bc70e9654361ace0a33c232",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/MemoryMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "MemoryCanvas.class",
+        "MemoryMidlet.class"
+      ]
+    },
+    {
+      "id": "g2048",
+      "file": "g2048.data",
+      "sha256": "6e2c36df9e5165fdc7961423c4612a5eec04b0be8a18f3883f6f838c43b031a6",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/Game2048Midlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "Game2048Canvas.class",
+        "Game2048Midlet.class"
+      ]
+    },
+    {
+      "id": "sokoban",
+      "file": "sokoban.data",
+      "sha256": "fc27ca247216f0c3b058e823f05313518d4cdd86b7e0f94b51de615a78ce1ad5",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/SokobanMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "SokobanCanvas.class",
+        "SokobanMidlet.class"
+      ]
+    },
+    {
+      "id": "drop",
+      "file": "drop.data",
+      "sha256": "d7de749c5e45492249f3fc52228c137092e180792334616f819af10df64a0b9d",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/DropMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "DropCanvas.class",
+        "DropMidlet.class"
+      ]
+    },
+    {
+      "id": "pixel-paddle",
+      "file": "pixel-paddle.data",
+      "sha256": "7f3eb40aefafe9080cacf45333ca72611030710a3dc9548846567dfdaeb34c37",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/002-pixel-paddle",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pixelpaddle/PaddleGame.class",
+        "pixelpaddle/PixelPaddleMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "pixelpaddle/PaddleGame.class",
+        "pixelpaddle/PixelPaddleMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "light-trails",
+      "file": "light-trails.data",
+      "sha256": "cd98f8d87d9ecf530beb32c26c72ee851c69db6702923c1a66b786f7468df4f2",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/051-light-trails",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "lighttrails/LightTrailsMIDlet.class",
+        "lighttrails/TrailsGame.class"
+      ],
+      "upstreamClasses": [
+        "lighttrails/LightTrailsMIDlet.class",
+        "lighttrails/TrailsGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "city-shield",
+      "file": "city-shield.data",
+      "sha256": "3311bf9f9ed3d5728a2f8adb9968ed33c4ea17875eaf86eabddb07a60bd22036",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/061-city-shield",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "cityshield/CityShieldMIDlet.class",
+        "cityshield/ShieldGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "cityshield/CityShieldMIDlet.class",
+        "cityshield/ShieldGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "cute-bee",
+      "file": "cute-bee.data",
+      "sha256": "008855636f14faf3bcd07050f4dd4898eeb8c32ab44a7618af28a9979f8d9762",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/pisces312/my-j2me-projects",
+        "commit": "67730c5abad898948c052d024921701d7e8caad6",
+        "path": "CuteBee7.0",
+        "license": "MIT",
+        "copyright": "Copyright (c) pisces312"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
+      },
+      "entries": 22,
+      "classes": [
+        "Bee.class",
+        "Bullets.class",
+        "CuteBee.class",
+        "Enemy.class",
+        "EnemyAll.class",
+        "GameOverScreen.class",
+        "beeBullets.class",
+        "beeCanvas.class",
+        "enemyBullets.class",
+        "enemyFly.class",
+        "enemybulletsFly.class",
+        "keyInput.class"
+      ],
+      "upstreamClasses": [
+        "Bee.class",
+        "Bullets.class",
+        "CuteBee.class",
+        "Enemy.class",
+        "EnemyAll.class",
+        "GameOverScreen.class",
+        "beeBullets.class",
+        "beeCanvas.class",
+        "enemyBullets.class",
+        "enemyFly.class",
+        "enemybulletsFly.class",
+        "keyInput.class"
+      ]
+    },
+    {
+      "id": "mole-bonk",
+      "file": "mole-bonk.data",
+      "sha256": "149831b3f40920f250f312249b3c53ca37285db4dbf778932547e81371e48a77",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/040-mole-bonk",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "molebonk/MoleBonkMIDlet.class",
+        "molebonk/MoleGame.class"
+      ],
+      "upstreamClasses": [
+        "molebonk/MoleBonkMIDlet.class",
+        "molebonk/MoleGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "fruit-catcher",
+      "file": "fruit-catcher.data",
+      "sha256": "d945a3364e8d73487dd9cfb70f77c30124d7bb6d631f067dc5e228113a7be310",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/030-fruit-catcher",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "fruitcatcher/CatcherGame.class",
+        "fruitcatcher/FruitCatcherMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "fruitcatcher/CatcherGame.class",
+        "fruitcatcher/FruitCatcherMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "star-defender",
+      "file": "star-defender.data",
+      "sha256": "66df8f35e1dc45b92d3bd0d0b68105ad8690b8f2529e35612df9e43f745fe1c6",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/011-star-defender",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "stardefender/DefenderGame.class",
+        "stardefender/StarDefenderMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "stardefender/DefenderGame.class",
+        "stardefender/StarDefenderMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "bubble-shot",
+      "file": "bubble-shot.data",
+      "sha256": "2c267c3daa333a6e0d0c8a945629210bfab2bda0d5fc364d0f01fc1bd9e5a9f5",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/091-bubble-shot",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "bubbleshot/BubbleGame.class",
+        "bubbleshot/BubbleShotMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "bubbleshot/BubbleGame.class",
+        "bubbleshot/BubbleShotMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "copter-cave",
+      "file": "copter-cave.data",
+      "sha256": "1ea703968e052133d8001454512929fda301881e611c94bcf0e2848d6432c9bb",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/081-copter-cave",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "coptercave/CopterCaveMIDlet.class",
+        "coptercave/CopterGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "coptercave/CopterCaveMIDlet.class",
+        "coptercave/CopterGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "grass-strike",
+      "file": "grass-strike.data",
+      "sha256": "e773ab564eed4779833907cab8190db14572e503a36b4f3c36fee20a3de24623",
+      "source": {
+        "kind": "upstream-jar",
+        "repo": "https://github.com/RehanSaeed/Shooter",
+        "commit": "cab88697a4b4921f72c043067d2b7bd02fe65839",
+        "path": "MobileGame",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2019 Muhammad Rehan Saeed"
+      },
+      "build": {
+        "kind": "repack",
+        "upstreamJar": "MobileGame/dist/MobileGame.jar",
+        "note": "只删掉了 .timestamp 与 res/Thumbs.db 两个条目；其余条目与上游逐字节相同，未改 .class、未改素材"
+      },
+      "entries": 36,
+      "classes": [
+        "AboutScreen.class",
+        "Bullet.class",
+        "BulletList.class",
+        "CountDown.class",
+        "Enemy.class",
+        "Explosion.class",
+        "ExplosionList.class",
+        "HelpScreen.class",
+        "HighScoreScreen.class",
+        "ImageStore.class",
+        "ItemObject.class",
+        "Levels.class",
+        "MainMenuScreen.class",
+        "Maps.class",
+        "MyGame.class",
+        "MyGameCanvas.class",
+        "ObjectMap.class",
+        "Player.class",
+        "SettingsScreen.class",
+        "SplashScreen.class",
+        "Text.class"
+      ],
+      "removedEntries": [
+        ".timestamp",
+        "res/Thumbs.db"
+      ]
+    },
+    {
+      "id": "road-hopper",
+      "file": "road-hopper.data",
+      "sha256": "ed01c936b570fc9340571d378afa6a220d7f974b660ab70d089476b1bc5449fe",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/071-road-hopper",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "roadhopper/HopperGame.class",
+        "roadhopper/RoadHopperMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "roadhopper/HopperGame.class",
+        "roadhopper/RoadHopperMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "escapee",
+      "file": "escapee.data",
+      "sha256": "f1de8e118fdc9e4bb61bbf55b0d5266f01a53286c1731076bb9d7012b34cc345",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/pisces312/my-j2me-projects",
+        "commit": "67730c5abad898948c052d024921701d7e8caad6",
+        "path": "Escapee11.1",
+        "license": "MIT",
+        "copyright": "Copyright (c) pisces312"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
+      },
+      "entries": 24,
+      "classes": [
+        "Bullets.class",
+        "Escapee.class",
+        "GameOverScreen.class",
+        "GameRecordStore.class",
+        "GameSound.class",
+        "HighScoreScreen.class",
+        "ShowTime.class",
+        "escapeeCanvas.class",
+        "escapeeMIDlet.class",
+        "keyInput.class"
+      ],
+      "upstreamClasses": [
+        "Bullets.class",
+        "Escapee.class",
+        "GameOverScreen.class",
+        "GameRecordStore.class",
+        "GameSound.class",
+        "HighScoreScreen.class",
+        "ShowTime.class",
+        "escapeeCanvas.class",
+        "escapeeMIDlet.class",
+        "keyInput.class"
+      ]
+    },
+    {
+      "id": "rock-blaster",
+      "file": "rock-blaster.data",
+      "sha256": "368af8c65ce87751df1bb46134847b771fb7c7f1239796231c32639d37188cc3",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/019-rock-blaster",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "rockblaster/RockBlasterMIDlet.class",
+        "rockblaster/RockGame.class"
+      ],
+      "upstreamClasses": [
+        "rockblaster/RockBlasterMIDlet.class",
+        "rockblaster/RockGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "fly-10000",
+      "file": "fly-10000.data",
+      "sha256": "755ebec0de2a2fa9a99e51864ede495e6f14f74abc959d93d8522b2b69909da1",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/pisces312/my-j2me-projects",
+        "commit": "67730c5abad898948c052d024921701d7e8caad6",
+        "path": "Fly10000_1.23",
+        "license": "MIT",
+        "copyright": "Copyright (c) pisces312"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
+      },
+      "entries": 12,
+      "classes": [
+        "Fly.class",
+        "FlyCanvas.class",
+        "GameRecordStore.class",
+        "HighScoreScreen.class",
+        "MenuCanvas.class",
+        "MenuItem.class",
+        "Midlet.class"
+      ],
+      "upstreamClasses": [
+        "Fly.class",
+        "FlyCanvas.class",
+        "GameRecordStore.class",
+        "HighScoreScreen.class",
+        "MenuCanvas.class",
+        "MenuItem.class",
+        "Midlet.class"
+      ]
+    },
+    {
+      "id": "gem-swap",
+      "file": "gem-swap.data",
+      "sha256": "2af14f1ab847d6c65fcf20d7ab7cc6a0ec777af8948efd61485b4b6135fcf5ed",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/041-gem-swap",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "gemswap/GemGame.class",
+        "gemswap/GemSwapMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "gemswap/GemGame.class",
+        "gemswap/GemSwapMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "switch-grid",
+      "file": "switch-grid.data",
+      "sha256": "96cfff9c8650867e5fa033bff5a79f23bd2f6b6daa8cce647d520bed52eba5dc",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/062-switch-grid",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "switchgrid/SwitchGame.class",
+        "switchgrid/SwitchGridMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "switchgrid/SwitchGame.class",
+        "switchgrid/SwitchGridMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "mine-sweep",
+      "file": "mine-sweep.data",
+      "sha256": "999c0a8605928f2268f204c40570f54f08a9a08bab9a37360a5a52bc7937f1aa",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/pisces312/my-j2me-projects",
+        "commit": "67730c5abad898948c052d024921701d7e8caad6",
+        "path": "MineMIDlet8.7",
+        "license": "MIT",
+        "copyright": "Copyright (c) pisces312"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
+      },
+      "entries": 23,
+      "classes": [
+        "GameRecordStore.class",
+        "HighScoreScreen.class",
+        "MenuCanvas.class",
+        "MenuItem.class",
+        "MineCanvas.class",
+        "MineGrid.class",
+        "MineMidlet.class",
+        "ShowStates.class",
+        "ShowTime.class",
+        "keyMapCanvas.class",
+        "keyMapList.class"
+      ],
+      "upstreamClasses": [
+        "GameRecordStore.class",
+        "HighScoreScreen.class",
+        "MenuCanvas.class",
+        "MenuItem.class",
+        "MineCanvas.class",
+        "MineGrid.class",
+        "MineMidlet.class",
+        "ShowStates.class",
+        "ShowTime.class",
+        "keyMapCanvas.class",
+        "keyMapList.class"
+      ]
+    },
+    {
+      "id": "pipe-flow",
+      "file": "pipe-flow.data",
+      "sha256": "45d80ee7f5f10a226a9d9e1adf68ffb2c2815409e620736aca8661112d56088c",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/072-pipe-flow",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pipeflow/PipeFlowMIDlet.class",
+        "pipeflow/PipeGame.class"
+      ],
+      "upstreamClasses": [
+        "pipeflow/PipeFlowMIDlet.class",
+        "pipeflow/PipeGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "slide-fifteen",
+      "file": "slide-fifteen.data",
+      "sha256": "344430d89d70ba75f0d2f31289b495f09f45f23a5c2e425a289f47b6484734c9",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/031-slide-fifteen",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "slidefifteen/SlideFifteenMIDlet.class",
+        "slidefifteen/SlideGame.class"
+      ],
+      "upstreamClasses": [
+        "slidefifteen/SlideFifteenMIDlet.class",
+        "slidefifteen/SlideGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "number-place",
+      "file": "number-place.data",
+      "sha256": "bcd24ac5f32daa1bdba31fff9c2cca39173a6c37239a102379ce5a58a2853705",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/007-number-place",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "numberplace/NumberPlaceGame.class",
+        "numberplace/NumberPlaceMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "numberplace/NumberPlaceGame.class",
+        "numberplace/NumberPlaceMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "pixel-logic",
+      "file": "pixel-logic.data",
+      "sha256": "bc6d45df02c295a823b2998d989815a9670f8bde46bbcbb2bae0e5f93d697244",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/052-pixel-logic",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pixellogic/LogicGame.class",
+        "pixellogic/PixelLogicMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "pixellogic/LogicGame.class",
+        "pixellogic/PixelLogicMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "laser-mirrors",
+      "file": "laser-mirrors.data",
+      "sha256": "228602dd13f96c23ec32acef27693579ecb5746b473b00b31f4f68f85ed0db0b",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/092-laser-mirrors",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "lasermirrors/LaserGame.class",
+        "lasermirrors/LaserMirrorsMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "lasermirrors/LaserGame.class",
+        "lasermirrors/LaserMirrorsMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "peg-jump",
+      "file": "peg-jump.data",
+      "sha256": "8f2e3225c7b13aade80c53db43ddd63d14c426a24ab059c6c35ce39aaa25b7d2",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/093-peg-jump",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pegjump/PegGame.class",
+        "pegjump/PegJumpMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "pegjump/PegGame.class",
+        "pegjump/PegJumpMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "guess-num",
+      "file": "guess-num.data",
+      "sha256": "d3ff0cbb35badd79bfb30f9f6a901dfd999b3bb1b2a3d27656848047f3a14427",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/pisces312/my-j2me-projects",
+        "commit": "67730c5abad898948c052d024921701d7e8caad6",
+        "path": "GuessNum1.0",
+        "license": "MIT",
+        "copyright": "Copyright (c) pisces312"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
+      },
+      "entries": 3,
+      "classes": [
+        "GuessNumMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "GuessNumMIDlet.class"
+      ]
+    },
+    {
+      "id": "code-breaker",
+      "file": "code-breaker.data",
+      "sha256": "69ae05728b70bdceca280d7e8bc03524297dc45493b06c886f8fccd475cd52b2",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/082-code-breaker",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "codebreaker/CodeBreakerMIDlet.class",
+        "codebreaker/CodeGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "codebreaker/CodeBreakerMIDlet.class",
+        "codebreaker/CodeGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "lianliankan",
+      "file": "lianliankan.data",
+      "sha256": "9587f32836567e6647539366f7e42f6844aebdae4b47e8b373f8766347dca6f8",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/pisces312/my-j2me-projects",
+        "commit": "67730c5abad898948c052d024921701d7e8caad6",
+        "path": "LianLianKan8.2",
+        "license": "MIT",
+        "copyright": "Copyright (c) pisces312"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
+      },
+      "entries": 15,
+      "classes": [
+        "GameRecordStore.class",
+        "HighScoreScreen.class",
+        "Point.class",
+        "ShowStates.class",
+        "ShowTime.class",
+        "llkBoard.class",
+        "llkCanvas.class",
+        "llkMidlet.class"
+      ],
+      "upstreamClasses": [
+        "GameRecordStore.class",
+        "HighScoreScreen.class",
+        "Point.class",
+        "ShowStates.class",
+        "ShowTime.class",
+        "llkBoard.class",
+        "llkCanvas.class",
+        "llkMidlet.class"
+      ]
+    },
+    {
+      "id": "maze",
+      "file": "maze.data",
+      "sha256": "35040d25c6c05ec3626a4df3babaa384f9103ec50f0f41c6bff670dc92972273",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/pisces312/my-j2me-projects",
+        "commit": "67730c5abad898948c052d024921701d7e8caad6",
+        "path": "Maze2.6",
+        "license": "MIT",
+        "copyright": "Copyright (c) pisces312"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
+      },
+      "entries": 12,
+      "classes": [
+        "Chromosome.class",
+        "Ga.class",
+        "GaInterface.class",
+        "Maze.class",
+        "MazeCanvas$1.class",
+        "MazeCanvas.class",
+        "MazeMIDlet.class",
+        "Point.class"
+      ],
+      "upstreamClasses": [
+        "Chromosome.class",
+        "Ga.class",
+        "GaInterface.class",
+        "Maze.class",
+        "MazeCanvas.class",
+        "MazeMIDlet.class",
+        "Point.class"
+      ]
+    },
+    {
+      "id": "five-stones",
+      "file": "five-stones.data",
+      "sha256": "5aba5b4cf4e82293f96c0b0a03a336a4a052265312f1c9685a8afc8ab49fa9bd",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/053-five-stones",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "fivestones/FiveStonesMIDlet.class",
+        "fivestones/StonesGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "fivestones/FiveStonesMIDlet.class",
+        "fivestones/StonesGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "noughts-grid",
+      "file": "noughts-grid.data",
+      "sha256": "94ce3cf70a40b81d7c89451cfc366e3d438389ee217edada02354c1c0eebd375",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/021-noughts-grid",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "noughtsgrid/NoughtsGame.class",
+        "noughtsgrid/NoughtsGridMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "noughtsgrid/NoughtsGame.class",
+        "noughtsgrid/NoughtsGridMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "four-drop",
+      "file": "four-drop.data",
+      "sha256": "0676866b7984881a0236c042613ecda1b142ac224156772f0ba3b4e7832869bc",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/013-four-drop",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "fourdrop/FourDropGame.class",
+        "fourdrop/FourDropMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "fourdrop/FourDropGame.class",
+        "fourdrop/FourDropMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "keypad-chess",
+      "file": "keypad-chess.data",
+      "sha256": "8ec898832d2b839d8b56bfb3b433ee1408a15555f9dbbb8a64871caae61e88aa",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/005-keypad-chess",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "keypadchess/ChessGame.class",
+        "keypadchess/KeypadChessMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "keypadchess/ChessGame.class",
+        "keypadchess/KeypadChessMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "keypad-checkers",
+      "file": "keypad-checkers.data",
+      "sha256": "037b206e0b6811503e099fe0ad92ac169d7064d0dc3d651e72390ff75f0ff855",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/042-keypad-checkers",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "keypadcheckers/CheckersGame.class",
+        "keypadcheckers/KeypadCheckersMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "keypadcheckers/CheckersGame.class",
+        "keypadcheckers/KeypadCheckersMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "domino-line",
+      "file": "domino-line.data",
+      "sha256": "1ec621d9c67c25da7e590a129a84433cea0f7c6a858857874ed39223b8086605",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/087-domino-line",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "dominoline/DominoGame.class",
+        "dominoline/DominoLineMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "dominoline/DominoGame.class",
+        "dominoline/DominoLineMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "nim-sticks",
+      "file": "nim-sticks.data",
+      "sha256": "ad8f615c5b187212da9c51f0ec41f5e277231acb61136a954cca630f2f35f2d1",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/073-nim-sticks",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "nimsticks/NimGame.class",
+        "nimsticks/NimSticksMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "nimsticks/NimGame.class",
+        "nimsticks/NimSticksMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "race-home",
+      "file": "race-home.data",
+      "sha256": "6024d73c612c357e3fa70cac2a7c1c7b1313d69790266c8ba5539c19128aecd7",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/083-race-home",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "racehome/RaceGame.class",
+        "racehome/RaceHomeMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "racehome/RaceGame.class",
+        "racehome/RaceHomeMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "seed-sowing",
+      "file": "seed-sowing.data",
+      "sha256": "d4a3387e03a04a8f25b8fb30fc79686869fe45d571d900fffb5e11b98fcd3054",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/063-seed-sowing",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "seedsowing/SeedSowingMIDlet.class",
+        "seedsowing/SowGame.class"
+      ],
+      "upstreamClasses": [
+        "seedsowing/SeedSowingMIDlet.class",
+        "seedsowing/SowGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "flip-disc",
+      "file": "flip-disc.data",
+      "sha256": "57a17d9e5914b7cf5c9289529367078761089c48c2a9eda7138f246f645382e2",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/032-flip-disc",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "flipdisc/FlipDiscMIDlet.class",
+        "flipdisc/FlipGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "flipdisc/FlipDiscMIDlet.class",
+        "flipdisc/FlipGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "eights-shed",
+      "file": "eights-shed.data",
+      "sha256": "855d9fc16b2c24685c37600e9976442d1b4df19b6a25e02c25004b6822f0e69b",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/067-eights-shed",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "eightsshed/EightsGame.class",
+        "eightsshed/EightsShedMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "eightsshed/EightsGame.class",
+        "eightsshed/EightsShedMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "cell-solitaire",
+      "file": "cell-solitaire.data",
+      "sha256": "01f6cdcc2721f4d3b6285ea5b928d5df88541e92f633b83299545c056c0fccca",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/057-cell-solitaire",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "cellsolitaire/CellGame.class",
+        "cellsolitaire/CellSolitaireMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "cellsolitaire/CellGame.class",
+        "cellsolitaire/CellSolitaireMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "klondike",
+      "file": "klondike.data",
+      "sha256": "7cf6507fca2e7838a15f34495899bde1d85778b5d8d63fe9be33481976d0809a",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/025-klondike",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "klondike/KlondikeGame.class",
+        "klondike/KlondikeMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "klondike/KlondikeGame.class",
+        "klondike/KlondikeMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "deep-crawl-3d",
+      "file": "deep-crawl-3d.data",
+      "sha256": "41d2f317485c038c7d271dd4e0152c61f8b84ccfbbb943b593edb55665ebcf82",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/078-deep-crawl-3d",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "deepcrawl/CrawlGame.class",
+        "deepcrawl/DeepCrawl3DMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "deepcrawl/CrawlGame.class",
+        "deepcrawl/DeepCrawl3DMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "pocket-saga",
+      "file": "pocket-saga.data",
+      "sha256": "87838ef0558872b0a7ce58f34e374440f3a7cf475397396d3b683f978d9e1c84",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/058-pocket-saga",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pocketsaga/PocketSagaMIDlet.class",
+        "pocketsaga/SagaGame.class"
+      ],
+      "upstreamClasses": [
+        "pocketsaga/PocketSagaMIDlet.class",
+        "pocketsaga/SagaGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "dungeon-quest",
+      "file": "dungeon-quest.data",
+      "sha256": "ae1c6bfb83a6cd1cd0991b722f5278d680c7498f4790dc355c8dd39496489eb5",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/015-dungeon-quest",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "dungeonquest/DungeonGame.class",
+        "dungeonquest/DungeonQuestMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "dungeonquest/DungeonGame.class",
+        "dungeonquest/DungeonQuestMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "lost-keep",
+      "file": "lost-keep.data",
+      "sha256": "d66fd133dc739b842136ff78291b1c5e400e23cbeb2d35aa267155bcab0e2915",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/047-lost-keep",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "lostkeep/KeepGame.class",
+        "lostkeep/LostKeepMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "lostkeep/KeepGame.class",
+        "lostkeep/LostKeepMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "monster-duel",
+      "file": "monster-duel.data",
+      "sha256": "ef99c8125358a609437f858eb95711ad86e227b127dec234724f3afd270c2bb7",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/026-monster-duel",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "monsterduel/DuelGame.class",
+        "monsterduel/MonsterDuelMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "monsterduel/DuelGame.class",
+        "monsterduel/MonsterDuelMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "spell-deck",
+      "file": "spell-deck.data",
+      "sha256": "685d5d3c5717249f4552945a1a6f5b83a8844792dce009213cd27f1fa21c2c24",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/088-spell-deck",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "spelldeck/SpellDeckMIDlet.class",
+        "spelldeck/SpellGame.class"
+      ],
+      "upstreamClasses": [
+        "spelldeck/SpellDeckMIDlet.class",
+        "spelldeck/SpellGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "arena-champion",
+      "file": "arena-champion.data",
+      "sha256": "93f4e66dd76ee7256180b1ed343f09f7618b6598ebd63008e318c5074c894957",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/068-arena-champion",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "arenachampion/ArenaChampionMIDlet.class",
+        "arenachampion/ArenaGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "arenachampion/ArenaChampionMIDlet.class",
+        "arenachampion/ArenaGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "island-dig",
+      "file": "island-dig.data",
+      "sha256": "7936b6a0e8a1cb4028f2ff745079890befe93ec66ad857574c7f600d0a343714",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/037-island-dig",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "islanddig/IslandDigMIDlet.class",
+        "islanddig/IslandGame.class"
+      ],
+      "upstreamClasses": [
+        "islanddig/IslandDigMIDlet.class",
+        "islanddig/IslandGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "siege-lanes",
+      "file": "siege-lanes.data",
+      "sha256": "abdb66ad86802a34199437144f5fe23ab0ae904ee7788e34d395a49997678d90",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/086-siege-lanes",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "siegelanes/SiegeGame.class",
+        "siegelanes/SiegeLanesMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "siegelanes/SiegeGame.class",
+        "siegelanes/SiegeLanesMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "box-claim",
+      "file": "box-claim.data",
+      "sha256": "6dfc3a9956ff3f5ae9691d921f8f888d5d85db62a64e7f48c4f56bec5b6b4819",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/035-box-claim",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "boxclaim/BoxClaimMIDlet.class",
+        "boxclaim/BoxGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "boxclaim/BoxClaimMIDlet.class",
+        "boxclaim/BoxGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "tower-guard",
+      "file": "tower-guard.data",
+      "sha256": "7c6e752f70bfc987e3881fc34c218b04fa45934af21f84cbc15e0d464e67dc6b",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/010-tower-guard",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "towerguard/TowerGame.class",
+        "towerguard/TowerGuardMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "towerguard/TowerGame.class",
+        "towerguard/TowerGuardMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "galaxy-conquest",
+      "file": "galaxy-conquest.data",
+      "sha256": "e5414eb6cb6aea385586c1b5bff70b6ea01dea39a6dc79bd7c3672c346ee0d49",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/066-galaxy-conquest",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "galaxyconquest/GalaxyConquestMIDlet.class",
+        "galaxyconquest/GalaxyGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "galaxyconquest/GalaxyConquestMIDlet.class",
+        "galaxyconquest/GalaxyGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "grid-tactics",
+      "file": "grid-tactics.data",
+      "sha256": "dbfc936205a5bfe62042f41c898dd7f69a2cb027285262385c0163a70627de18",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/076-grid-tactics",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "gridtactics/GridTacticsMIDlet.class",
+        "gridtactics/TacticsGame.class"
+      ],
+      "upstreamClasses": [
+        "gridtactics/GridTacticsMIDlet.class",
+        "gridtactics/TacticsGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "sea-strike",
+      "file": "sea-strike.data",
+      "sha256": "f27f059352008944980f5daec30cd88e68fd98b515bf0e3c8a3548c94cf4bce7",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/024-sea-strike",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "seastrike/SeaStrikeGame.class",
+        "seastrike/SeaStrikeMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "seastrike/SeaStrikeGame.class",
+        "seastrike/SeaStrikeMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "kingdom-ledger",
+      "file": "kingdom-ledger.data",
+      "sha256": "75f73cabb8211358d1c6fe836658ebfdec8979fb2772dec7a574cef015a66ad8",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/056-kingdom-ledger",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "kingdomledger/KingdomLedgerMIDlet.class",
+        "kingdomledger/LedgerGame.class"
+      ],
+      "upstreamClasses": [
+        "kingdomledger/KingdomLedgerMIDlet.class",
+        "kingdomledger/LedgerGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "land-grab",
+      "file": "land-grab.data",
+      "sha256": "bc0f97ef01267f744ddbb16399aa069893f33ac2340fe7f847444c172e16c3c8",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/045-land-grab",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "landgrab/LandGame.class",
+        "landgrab/LandGrabMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "landgrab/LandGame.class",
+        "landgrab/LandGrabMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "space-trader",
+      "file": "space-trader.data",
+      "sha256": "f72bb5b4aa0cb23bbaabf1cac0b57fa535c39fa8d7ec4c76b9e91bd38b34d9eb",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/096-space-trader",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "spacetrader/SpaceTraderMIDlet.class",
+        "spacetrader/TraderGame.class"
+      ],
+      "upstreamClasses": [
+        "spacetrader/SpaceTraderMIDlet.class",
+        "spacetrader/TraderGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "lemon-stand",
+      "file": "lemon-stand.data",
+      "sha256": "a1d13992c18373961b48abcace6ed62d4eecd1712fc8df7a97307bc583a0c2e5",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/090-lemon-stand",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "lemonstand/LemonGame.class",
+        "lemonstand/LemonStandMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "lemonstand/LemonGame.class",
+        "lemonstand/LemonStandMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "factory-line",
+      "file": "factory-line.data",
+      "sha256": "c0d8fd61704b196f5b52ae397749cf9ecc2a4bd766e4013381027bc3479e1ce6",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/080-factory-line",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "factoryline/FactoryGame.class",
+        "factoryline/FactoryLineMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "factoryline/FactoryGame.class",
+        "factoryline/FactoryLineMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "deep-mine",
+      "file": "deep-mine.data",
+      "sha256": "83d901065b581c60ea9eb5788a4b95ce7cc782524a0a78f0b6fae71d17d3faa5",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/049-deep-mine",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "deepmine/DeepMineMIDlet.class",
+        "deepmine/MineGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "deepmine/DeepMineMIDlet.class",
+        "deepmine/MineGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "lake-fishing",
+      "file": "lake-fishing.data",
+      "sha256": "fcc7c4c4888bccd41fdcf07f716cf038e8bb0494a29b494cf3092e4a5d368aa4",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/028-lake-fishing",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "lakefishing/FishingGame.class",
+        "lakefishing/LakeFishingMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "lakefishing/FishingGame.class",
+        "lakefishing/LakeFishingMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "pet-pal",
+      "file": "pet-pal.data",
+      "sha256": "1f20586033ca3631cd1e45a5d36bb604d11144f4976c41800688676a42d213a0",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/095-pet-pal",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "petpal/PetGame.class",
+        "petpal/PetPalMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "petpal/PetGame.class",
+        "petpal/PetPalMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "corner-shop",
+      "file": "corner-shop.data",
+      "sha256": "0725dcbd39bae6029cb9891928d833a86be6cc96343606b7e317e2aa90becb5d",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/039-corner-shop",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "cornershop/CornerShopMIDlet.class",
+        "cornershop/ShopGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "cornershop/CornerShopMIDlet.class",
+        "cornershop/ShopGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "pocket-farm",
+      "file": "pocket-farm.data",
+      "sha256": "07b7774f31cf28b48b88482af1a85aa9453b5446cc4672013fc289b40baada71",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/017-pocket-farm",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pocketfarm/FarmGame.class",
+        "pocketfarm/PocketFarmMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "pocketfarm/FarmGame.class",
+        "pocketfarm/PocketFarmMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "tiny-city",
+      "file": "tiny-city.data",
+      "sha256": "119bfe53707bb962c97da147e05e38b9bde7d8f6418136e4de22c6a27d518e26",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/070-tiny-city",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "tinycity/CityGame.class",
+        "tinycity/TinyCityMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "tinycity/CityGame.class",
+        "tinycity/TinyCityMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "diner-rush",
+      "file": "diner-rush.data",
+      "sha256": "8450bbd3c0fc654e3457c3362131700ba326d1dc94bafdf48404aa4742ac6415",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/060-diner-rush",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "dinerrush/DinerGame.class",
+        "dinerrush/DinerRushMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "dinerrush/DinerGame.class",
+        "dinerrush/DinerRushMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "pixel-racer",
+      "file": "pixel-racer.data",
+      "sha256": "0b73032ad6c43e7524ece227711af634e4b564ec2cc0f304f5082658fb1f4806",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/075-pixel-racer",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pixelracer/PixelRacerMIDlet.class",
+        "pixelracer/RacerGame.class"
+      ],
+      "upstreamClasses": [
+        "pixelracer/PixelRacerMIDlet.class",
+        "pixelracer/RacerGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "checkpoint-rally",
+      "file": "checkpoint-rally.data",
+      "sha256": "eea060daa1877fc4323eb8157171ef96db5e6db10875d1f290d262f5035ed757",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/034-checkpoint-rally",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "checkpointrally/CheckpointRallyMIDlet.class",
+        "checkpointrally/RallyGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "checkpointrally/CheckpointRallyMIDlet.class",
+        "checkpointrally/RallyGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "moto-rush",
+      "file": "moto-rush.data",
+      "sha256": "e1bc41ae2d75aec34909918380c826ee7769d243664258ae87f550b757907782",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/023-moto-rush",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "motorush/MotoGame.class",
+        "motorush/MotoRushMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "motorush/MotoGame.class",
+        "motorush/MotoRushMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "ring-racer",
+      "file": "ring-racer.data",
+      "sha256": "9d599cf4e25e9a57bae792dcad8e21286deccbebbed9160eaede20d8fa40b27d",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/085-ring-racer",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "ringracer/RingGame.class",
+        "ringracer/RingRacerMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "ringracer/RingGame.class",
+        "ringracer/RingRacerMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "drag-strip",
+      "file": "drag-strip.data",
+      "sha256": "9704a2015a9a61a4e24f3e9bcbf18a72844030f66545765d3f84b0548e97f432",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/044-drag-strip",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "dragstrip/DragGame.class",
+        "dragstrip/DragStripMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "dragstrip/DragGame.class",
+        "dragstrip/DragStripMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "hill-climb",
+      "file": "hill-climb.data",
+      "sha256": "87b3b421149f1ab7d64896d216f37efe92e34f86119894de9e4725e321ffd1aa",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/065-hill-climb",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "hillclimb/ClimbGame.class",
+        "hillclimb/HillClimbMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "hillclimb/ClimbGame.class",
+        "hillclimb/HillClimbMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "snow-slalom",
+      "file": "snow-slalom.data",
+      "sha256": "96621e969266edaac0f2eee357e7befa1e05e4bbcb5ca5a8171038ec4666ce78",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/055-snow-slalom",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "snowslalom/SlalomGame.class",
+        "snowslalom/SnowSlalomMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "snowslalom/SlalomGame.class",
+        "snowslalom/SnowSlalomMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "traffic-dash",
+      "file": "traffic-dash.data",
+      "sha256": "1c610adf2ff44c64b2682b849b61e771ac43197732078cb80290eacaee3d26e5",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/009-traffic-dash",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "trafficdash/TrafficDashMIDlet.class",
+        "trafficdash/TrafficGame.class"
+      ],
+      "upstreamClasses": [
+        "trafficdash/TrafficDashMIDlet.class",
+        "trafficdash/TrafficGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "pixel-jumper",
+      "file": "pixel-jumper.data",
+      "sha256": "247a4ebcf02e18cb3f3de1344ddf3128e396b2f4032ae0e05a3a282be3f3cbe7",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/008-pixel-jumper",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pixeljumper/JumperGame.class",
+        "pixeljumper/PixelJumperMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "pixeljumper/JumperGame.class",
+        "pixeljumper/PixelJumperMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "sky-hopper",
+      "file": "sky-hopper.data",
+      "sha256": "30ae6f36f79e573ba41c92ff27857e678ab00f14b3757d33aee9d8633854bbc3",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/022-sky-hopper",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "skyhopper/HopperGame.class",
+        "skyhopper/SkyHopperMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "skyhopper/HopperGame.class",
+        "skyhopper/SkyHopperMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "barrel-climb",
+      "file": "barrel-climb.data",
+      "sha256": "9aa068c2014903e085097e43f9b31dca3ebc6e103d6f9c7bd9864d22f7ca4423",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/074-barrel-climb",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "barrelclimb/BarrelClimbMIDlet.class",
+        "barrelclimb/ClimbGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "barrelclimb/BarrelClimbMIDlet.class",
+        "barrelclimb/ClimbGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "ladder-loot",
+      "file": "ladder-loot.data",
+      "sha256": "4cc12b0d09ce6829c92291c9b088abee624d7de29e8d26d1da753249f20b78c6",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/043-ladder-loot",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "ladderloot/LadderLootMIDlet.class",
+        "ladderloot/LootGame.class"
+      ],
+      "upstreamClasses": [
+        "ladderloot/LadderLootMIDlet.class",
+        "ladderloot/LootGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "cave-escape",
+      "file": "cave-escape.data",
+      "sha256": "ef492b2ea742c5599b03d798446c3b242934a6ddc621bf8ead0904ab423dab1d",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/033-cave-escape",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "caveescape/CaveEscapeMIDlet.class",
+        "caveescape/CaveGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "caveescape/CaveEscapeMIDlet.class",
+        "caveescape/CaveGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "treasure-run",
+      "file": "treasure-run.data",
+      "sha256": "fb106bfe29b8770115b0cdc6d0a12dc4572123be33e4c3fbc38ed44ed1d55fb0",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/054-treasure-run",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "treasurerun/RunGame.class",
+        "treasurerun/TreasureRunMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "treasurerun/RunGame.class",
+        "treasurerun/TreasureRunMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "wall-kick",
+      "file": "wall-kick.data",
+      "sha256": "f24f2394ced88a7aa86080738d8c1ce6bddbc5d817ee8c255be54e898430c72a",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/084-wall-kick",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "wallkick/KickGame.class",
+        "wallkick/WallKickMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "wallkick/KickGame.class",
+        "wallkick/WallKickMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "gravity-flip",
+      "file": "gravity-flip.data",
+      "sha256": "9d1ebff1fbc56db55a3b4e61b37d49442ce86f6988b4f3b62c2541710fcfa86c",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/064-gravity-flip",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "gravityflip/FlipGame.class",
+        "gravityflip/GravityFlipMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "gravityflip/FlipGame.class",
+        "gravityflip/GravityFlipMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "ten-pin",
+      "file": "ten-pin.data",
+      "sha256": "c7a44e43f76566043b969517ec4892f8a87073b8b453213ae67d1229d5839ff9",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/038-ten-pin",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "tenpin/BowlingGame.class",
+        "tenpin/TenPinMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "tenpin/BowlingGame.class",
+        "tenpin/TenPinMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "bullseye",
+      "file": "bullseye.data",
+      "sha256": "6f77c880b64fc8274f73921d34a1fe05c38bf17e75f228e0b3b3508c2efb4c07",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/079-bullseye",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "bullseye/ArcheryGame.class",
+        "bullseye/BullseyeMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "bullseye/ArcheryGame.class",
+        "bullseye/BullseyeMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "hoop-shot",
+      "file": "hoop-shot.data",
+      "sha256": "9ca03bc9c5ec0143108be06942772be44be2e1a1787e8ab1529d5d4c165dcadb",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/048-hoop-shot",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "hoopshot/HoopGame.class",
+        "hoopshot/HoopShotMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "hoopshot/HoopGame.class",
+        "hoopshot/HoopShotMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "pocket-cricket",
+      "file": "pocket-cricket.data",
+      "sha256": "2adf79f25e6795f31b44c1027ad7e39c3e1593ef6381a47c1b865189b1426e9d",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/059-pocket-cricket",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "pocketcricket/CricketGame.class",
+        "pocketcricket/PocketCricketMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "pocketcricket/CricketGame.class",
+        "pocketcricket/PocketCricketMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "puck-rush",
+      "file": "puck-rush.data",
+      "sha256": "bfc6fb4f43a4cd5040147c980410a78639f39fa7439b4f08849af2d735acfc99",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/089-puck-rush",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "puckrush/PuckGame.class",
+        "puckrush/PuckRushMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "puckrush/PuckGame.class",
+        "puckrush/PuckRushMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "volley-beach",
+      "file": "volley-beach.data",
+      "sha256": "d5009275e796c87af5f954cc20007fd5bc0810ea85cf63e270c81d4db0723037",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/094-volley-beach",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "volleybeach/VolleyBeachMIDlet.class",
+        "volleybeach/VolleyGame.class"
+      ],
+      "upstreamClasses": [
+        "volleybeach/VolleyBeachMIDlet.class",
+        "volleybeach/VolleyGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "spot-kick",
+      "file": "spot-kick.data",
+      "sha256": "cfa095a10df7c2ddbeca8ccbe86bee73118c4bad5ef2ccb33ae4c445e151245f",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/016-spot-kick",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "spotkick/SpotKickGame.class",
+        "spotkick/SpotKickMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "spotkick/SpotKickGame.class",
+        "spotkick/SpotKickMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "court-rally",
+      "file": "court-rally.data",
+      "sha256": "3f705794dbcb70c4da74785abfb5b6ca2dae8b9b32091c2e362775ccd36938d8",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/069-court-rally",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "courtrally/CourtRallyMIDlet.class",
+        "courtrally/TennisGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "courtrally/CourtRallyMIDlet.class",
+        "courtrally/TennisGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "mini-golf",
+      "file": "mini-golf.data",
+      "sha256": "c744fa793edf42a2876a56bc8626c438937bd7283b23454bdeec73b21499d278",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/027-mini-golf",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "minigolf/GolfGame.class",
+        "minigolf/MiniGolfMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "minigolf/GolfGame.class",
+        "minigolf/MiniGolfMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "math-blitz",
+      "file": "math-blitz.data",
+      "sha256": "3520b96b0d0e1758f114f1c323a277d6b3fa673906b3a4ad0dc5a7d034310494",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/099-math-blitz",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "mathblitz/MathBlitzMIDlet.class",
+        "mathblitz/MathGame.class"
+      ],
+      "upstreamClasses": [
+        "mathblitz/MathBlitzMIDlet.class",
+        "mathblitz/MathGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "rail-switcher",
+      "file": "rail-switcher.data",
+      "sha256": "fe2710a47c879a8767c3c53dc0e487af8110a21dedd30c010bb5b61f8efdebf6",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/097-rail-switcher",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "railswitcher/RailGame.class",
+        "railswitcher/RailSwitcherMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "railswitcher/RailGame.class",
+        "railswitcher/RailSwitcherMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "morse-signal",
+      "file": "morse-signal.data",
+      "sha256": "40293ec5ddbee641a0e37d0000a25a05120e9ff3f8a363dd67b0fb831b51409f",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/098-morse-signal",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "morsesignal/MorseGame.class",
+        "morsesignal/MorseSignalMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "morsesignal/MorseGame.class",
+        "morsesignal/MorseSignalMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "cell-garden",
+      "file": "cell-garden.data",
+      "sha256": "68d32afbcdd047c7a39c8c4e10ed2f9c1fb99b4580e10930090174900e160401",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/100-cell-garden",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "cellgarden/CellGardenMIDlet.class",
+        "cellgarden/GardenGame.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "cellgarden/CellGardenMIDlet.class",
+        "cellgarden/GardenGame.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "orbit-jump",
+      "file": "orbit-jump.data",
+      "sha256": "8d2adf07638a2c914063402f6c5713d51d15adf513570b3a962505343aec8218",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/050-orbit-jump",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "orbitjump/OrbitGame.class",
+        "orbitjump/OrbitJumpMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "orbitjump/OrbitGame.class",
+        "orbitjump/OrbitJumpMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "multitap-rush",
+      "file": "multitap-rush.data",
+      "sha256": "5eb518abb72db8e180dd705c5119cc867a5afc7e7f2770e26e369947caec4531",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/029-multitap-rush",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class",
+        "multitaprush/MultitapGame.class",
+        "multitaprush/MultitapRushMIDlet.class"
+      ],
+      "upstreamClasses": [
+        "multitaprush/MultitapGame.class",
+        "multitaprush/MultitapRushMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    },
+    {
+      "id": "echo-tones",
+      "file": "echo-tones.data",
+      "sha256": "d88d14b8bd833a7880b7fb92d763293b52e46e4f977e44d8f164bd451c30c735",
+      "source": {
+        "kind": "upstream-source",
+        "repo": "https://github.com/agneay/j2me-100-games",
+        "commit": "a81f2c5e0396baac10928ff012bbf9d8a2d787e3",
+        "path": "games/018-echo-tones",
+        "license": "MIT",
+        "copyright": "Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors"
+      },
+      "build": {
+        "kind": "compile",
+        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）；同时编译共享目录 common/src"
+      },
+      "entries": 15,
+      "classes": [
+        "echotones/EchoGame.class",
+        "echotones/EchoTonesMIDlet.class",
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ],
+      "upstreamClasses": [
+        "echotones/EchoGame.class",
+        "echotones/EchoTonesMIDlet.class"
+      ],
+      "sharedClasses": [
+        "gamekit/Body.class",
+        "gamekit/Cards.class",
+        "gamekit/FMath.class",
+        "gamekit/Game.class",
+        "gamekit/GameMIDlet.class",
+        "gamekit/Gfx.class",
+        "gamekit/Rnd.class",
+        "gamekit/Sfx.class",
+        "gamekit/TileMap.class"
+      ]
+    }
+  ]
+}

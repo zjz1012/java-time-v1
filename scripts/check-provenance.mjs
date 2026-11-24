@@ -15,11 +15,14 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { readEntries } from './lib/jar.mjs'
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const SOURCES = join(ROOT, 'docs/provenance/SOURCES.md')
 const NOTICES = join(ROOT, 'docs/provenance/THIRD_PARTY_NOTICES.md')
 const GPL_TEXT = join(ROOT, 'docs/provenance/license-texts/GPL-2.0.txt')
 const MIT_TEXT = join(ROOT, 'docs/provenance/license-texts/MIT.txt')
+const GAMES_JSON = join(ROOT, 'docs/provenance/games.json')
 const GAMES_DIR = join(ROOT, 'public/games')
 const CATALOG = join(ROOT, 'src/library/catalog.ts')
 
@@ -72,6 +75,9 @@ if (!notices.includes('4ee3e78') && !notices.includes('46ee3e78')) {
 
 // ---------------------------------------------------------------- 3 依赖是否登记
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'))
+/** 第 7 节会填。报告里要能看出「逐款核对了多少」，而不是只说「完整」。 */
+let gameTotal = 0
+
 const directDeps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies })
 const unregistered = directDeps.filter((name) => {
   if (name.startsWith('@types/')) return false // 类型声明单独一行说明即可
@@ -152,12 +158,105 @@ if (!existsSync(CATALOG)) {
   }
 }
 
+/*
+ * ---------------------------------------------------------------- 7 逐款来源
+ *
+ * 这一节把三份东西钉在一起：
+ *   台账（SOURCES.md 里的 commit） ←→ 逐款记录（games.json） ←→ 真实字节（sha256）
+ *
+ * 只说「来源是某个 MIT 仓库」不算证明：文件可以被换掉而登记照旧。所以这里要求
+ * 每款包的内容摘要与 class 清单都和记录一致 —— 换一个字节、少一个类都会红。
+ * 记录里出现的每个 commit 还必须在 SOURCES.md 里出现，避免「机器记录更新了、
+ * 给人看的台账没更新」。
+ */
+if (!existsSync(GAMES_JSON)) {
+  fail('缺少 docs/provenance/games.json（内置游戏的逐款来源登记）')
+} else if (existsSync(CATALOG)) {
+  const record = JSON.parse(readFileSync(GAMES_JSON, 'utf8'))
+  const games = Array.isArray(record.games) ? record.games : []
+  gameTotal = games.length
+  const catalogIds = [...readFileSync(CATALOG, 'utf8').matchAll(/\{ id: '([^']+)', title: /g)].map(
+    (match) => match[1],
+  )
+  const recorded = new Set(games.map((game) => game.id))
+
+  const missing = catalogIds.filter((id) => !recorded.has(id))
+  const extra = games.filter((game) => !catalogIds.includes(game.id)).map((game) => game.id)
+  if (missing.length > 0) fail(`games.json 里没有登记：${missing.join(', ')}`)
+  if (extra.length > 0) fail(`games.json 里登记了 catalog 没有的游戏：${extra.join(', ')}`)
+
+  const commits = new Set()
+  for (const game of games) {
+    const source = game.source ?? {}
+    const file = join(GAMES_DIR, `${game.id}.data`)
+
+    if (source.kind === 'self') {
+      if (source.license !== 'GPL-2.0-or-later') {
+        fail(`${game.id}: 自研作品应登记为 GPL-2.0-or-later（实际「${source.license}」）`)
+      }
+      if (!source.sourcePath || !existsSync(join(ROOT, source.sourcePath))) {
+        fail(`${game.id}: 登记的源码路径不存在（${source.sourcePath}）—— 只有产物没有源码`)
+      }
+    } else {
+      if (!/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/.test(source.repo ?? '')) {
+        fail(`${game.id}: 上游仓库地址不合法（${source.repo}）`)
+      }
+      if (!/^[0-9a-f]{40}$/.test(source.commit ?? '')) {
+        fail(`${game.id}: 上游 commit 不是完整的 40 位十六进制（${source.commit}）`)
+      } else {
+        commits.add(source.commit)
+      }
+      if (!source.path) fail(`${game.id}: 没有登记上游的具体路径`)
+      if (!source.copyright) fail(`${game.id}: 没有登记版权人 —— MIT 要求保留版权声明`)
+      if (source.license !== 'MIT') fail(`${game.id}: 登记的许可是「${source.license}」，本仓库只收录 MIT`)
+
+      if (source.kind === 'upstream-jar') {
+        if (!game.build?.note?.trim()) fail(`${game.id}: 重打包必须写明改了什么（build.note）`)
+      } else if (!game.upstreamClasses?.length) {
+        fail(`${game.id}: 从源码编译的包必须列出上游类清单（upstreamClasses）`)
+      }
+    }
+
+    if (!existsSync(file)) {
+      fail(`${game.id}: 找不到产物 public/games/${game.id}.data`)
+      continue
+    }
+    const buffer = readFileSync(file)
+    const digest = createHash('sha256').update(buffer).digest('hex')
+    if (digest !== game.sha256) {
+      fail(`${game.id}: 字节与登记不符（记录 ${String(game.sha256).slice(0, 12)}…，实际 ${digest.slice(0, 12)}…）`)
+    }
+    const classes = readEntries(buffer)
+      .filter((entry) => entry.name.endsWith('.class'))
+      .map((entry) => entry.name)
+      .sort()
+    const listed = [...(game.classes ?? [])].sort()
+    if (classes.join('\n') !== listed.join('\n')) {
+      const added = classes.filter((name) => !listed.includes(name))
+      const removed = listed.filter((name) => !classes.includes(name))
+      fail(
+        `${game.id}: class 清单与登记不符` +
+          `${added.length > 0 ? `；多出 ${added.join(', ')}` : ''}` +
+          `${removed.length > 0 ? `；缺少 ${removed.join(', ')}` : ''}`,
+      )
+    }
+  }
+
+  for (const commit of commits) {
+    if (!sources.includes(commit)) {
+      fail(`SOURCES.md 没有登记 commit ${commit}（机器记录与台账必须一致）`)
+    }
+  }
+}
+
 report()
 
 function report() {
   for (const w of warnings) console.warn(`[warn] ${w}`)
   if (problems.length === 0) {
-    console.log(`[ok] 来源登记完整：${directDeps.length} 个直接依赖，GPL 原文校验通过`)
+    console.log(
+      `[ok] 来源登记完整：${directDeps.length} 个直接依赖、${gameTotal} 款随包游戏逐款核对，GPL 原文校验通过`,
+    )
     return
   }
   for (const p of problems) console.error(`[fail] ${p}`)

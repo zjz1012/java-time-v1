@@ -20,7 +20,10 @@
     "check:provenance": "node scripts/check-provenance.mjs",
     "check:kernels": "node scripts/check-kernel-artifacts.mjs",
     "check:games": "node scripts/import-games.mjs --check",
-    "verify:e2e-report": "node scripts/verify-e2e-report.mjs"
+    "verify:e2e-report": "node scripts/verify-e2e-report.mjs",
+    "build:midlets": "node scripts/build-midlets.mjs --install",
+    "check:midlets": "node scripts/build-midlets.mjs --structural",
+    "verify:midlets": "node scripts/build-midlets.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

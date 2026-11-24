@@ -1,0 +1,23 @@
+{
+  "note": [
+    "六款自研 MIDlet 的构建清单。数组顺序不影响任何东西，id 必须与",
+    "src/library/catalog.ts 里的 id 一致（校验脚本会核对）。",
+    "name 是写进 manifest 的 MIDlet-Name —— 它不等于库页显示的标题：",
+    "库页标题在 catalog 里（贪吃蛇 / 推箱子 / …），这里保留英文是因为",
+    "play 页标题栏读的是 MIDlet-Name，改成中文会让已发布的两款换名字。",
+    "vendor 与 MicroEdition-* 三段由脚本固定写入，见 scripts/build-midlets.mjs。"
+  ],
+  "vendor": "zhimiao",
+  "profile": {
+    "configuration": "CLDC-1.1",
+    "profile": "MIDP-2.0"
+  },
+  "games": [
+    { "id": "snake", "main": "SnakeMidlet", "name": "Snake" },
+    { "id": "breakout", "main": "BreakoutMidlet", "name": "Breakout" },
+    { "id": "memory", "main": "MemoryMidlet", "name": "Memory" },
+    { "id": "g2048", "main": "Game2048Midlet", "name": "2048" },
+    { "id": "sokoban", "main": "SokobanMidlet", "name": "推箱子" },
+    { "id": "drop", "main": "DropMidlet", "name": "坠落方块" }
+  ]
+}
