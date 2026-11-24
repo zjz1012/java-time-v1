@@ -19,7 +19,14 @@ import {
   type RuntimeState,
   type SaveFile,
 } from '@/runtime'
-import { createIdbRepository, createSaveService } from '@/saves'
+import {
+  canImport,
+  createIdbRepository,
+  createSaveService,
+  importSavePackage,
+  needsRestart,
+} from '@/saves'
+import type { ImportOutcome, UnpackResult } from '@/saves'
 import { sha256Hex } from '@/shared/hash'
 import { Keypad } from './Keypad'
 
@@ -81,6 +88,18 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
   const [savesOpen, setSavesOpen] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveNote, setSaveNote] = useState<string | null>(null)
+  /** 已校验、但在等用户确认「这会结束当前这局」的包。 */
+  const [pendingImport, setPendingImport] = useState<UnpackResult | null>(null)
+
+  /**
+   * 当前状态的最新值。
+   *
+   * 事件回调里的 `state` 是渲染时闭包捕获的：读文件/校验可能花几百毫秒，
+   * 期间游戏可能从「加载中」变成「运行中」。用旧值判断「要不要先停下游戏」
+   * 就会漏掉重启，于是导入被随后的退出快照覆盖回去。
+   */
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   /**
    * 归档写入是串行的。
@@ -90,6 +109,13 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
    * 退出时要等它清空才导航，否则最后一份快照会随页面卸载丢掉。
    */
   const archiveChain = useRef<Promise<void>>(Promise.resolve())
+  /**
+   * 开始写导入包之后，就不再归档旧实例的快照。
+   *
+   * `stop()` 等 `stopped` 只有 2 秒上限；万一超时返回，宿主那份「退出快照」
+   * 可能晚到，把刚导入的档盖回去 —— 用户看到的是「导入成功，退出后又变回旧档」。
+   */
+  const suspendArchive = useRef(false)
 
   useEffect(() => {
     const host = hostRef.current
@@ -99,6 +125,9 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
     let detachKeyboard: (() => void) | undefined
     let detachSaves: (() => void) | undefined
     let runtime: PluotSorbetRuntime | null = null
+
+    // 新一轮启动：恢复归档写入（上一轮可能因为「导入后重启」被挂起）。
+    suspendArchive.current = false
 
     void (async () => {
       try {
@@ -110,7 +139,24 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
           throw new Error(`程序包请求失败（HTTP ${response.status}）`)
         }
         const bytes = new Uint8Array(await response.arrayBuffer())
-        const contentHash = await sha256Hex(bytes)
+
+        /*
+         * 指纹算不出来就**不要启动**，不是「先跑起来，存档以后再说」。
+         *
+         * 指纹是存档隔离键：没有它，恢复时不知道该灌哪份档，退出时也不知道该
+         * 写到谁名下。跑起来的后果是游戏在别人的（或空的）档上玩，退出时再用
+         * 这份错的数据覆盖归档 —— 比直接拒绝启动糟得多。
+         */
+        let contentHash: string
+        try {
+          contentHash = await sha256Hex(bytes)
+        } catch (cause) {
+          const reason = cause instanceof Error ? cause.message : '未知原因'
+          throw new Error(
+            `无法计算游戏内容指纹：${reason}。为避免不同游戏的存档互相覆盖，已停止启动。`,
+            { cause },
+          )
+        }
         if (disposed) return
         setFingerprint(contentHash)
 
@@ -130,12 +176,16 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
           if (!disposed) setState(event.current)
         })
         runtime.on('error', (event) => {
-          if (!disposed) setMessage(describeErrorCode(event.code))
+          // 带上宿主给的原因：存档恢复失败时，「关掉别的标签页」和「清理站点数据」
+          // 是完全不同的动作，只给一句「内部错误」等于让人无从下手。
+          if (!disposed) setMessage(describeErrorCode(event.code, event.message))
         })
 
         // 快照可能来自三处：静默期、退出前、手动导出。全都落归档 ——
         // 这份归档就是下次启动时灌回内核的东西（见 ADR 0005）。
         detachSaves = runtime.on('saves', (event) => {
+          // 已经在写导入的包了：这份迟到的快照属于旧局面，写进去会盖掉导入结果。
+          if (suspendArchive.current) return
           const files = event.files
           archiveChain.current = archiveChain.current
             .then(() => saveService.archive(contentHash, displayName, files))
@@ -236,20 +286,45 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
       event.target.value = ''
       if (!file) return
 
+      if (!fingerprint) {
+        setSaveNote('游戏还在准备，稍后再导入')
+        return
+      }
+
       setSaveBusy(true)
       setSaveNote(null)
+      setPendingImport(null)
       try {
         // 校验通过之前不碰归档（见 saves/format.ts 的说明）。
         const parsed = await saveService.readZip(file)
-        await saveService.applyImport(parsed.manifest, parsed)
 
-        if (parsed.manifest.fingerprint === fingerprint) {
-          setSaveNote('已导入，重新进入游戏后生效')
-        } else {
-          // 包里有它自己的指纹，就还给它的游戏 —— 不强行塞进当前游戏，
-          // 否则「导入别人的档」会变成「把当前游戏的档换成别人的」。
-          setSaveNote(`这份存档属于「${parsed.manifest.displayName}」，已存到它名下`)
+        /*
+         * 内核还在装配：此时既不能写（会被启动后的旧档覆盖），也不能停
+         * （宿主会交一份空快照，等于把归档删掉）。等一下再导入。
+         */
+        if (!canImport(stateRef.current)) {
+          setSaveNote('游戏还在启动，等画面出来后再导入')
+          return
         }
+
+        /*
+         * 会打断当前这局时，先问人再动手。
+         *
+         * 直接把档写进归档是「看起来成功」的做法：游戏还在跑，内核里是旧档，
+         * 退出快照随后把刚写入的档覆盖回去 —— 用户第二天打开发现进度回到导入前。
+         */
+        if (needsRestart(stateRef.current, fingerprint, parsed)) {
+          setPendingImport(parsed)
+          return
+        }
+
+        const outcome = await importSavePackage(parsed, fingerprint, stateRef.current, {
+          // 上面刚用同一个状态判断过「不需要重启」，这两个回调不会执行。
+          stop: () => Promise.reject(new Error('当前不需要停止运行')),
+          apply: () => saveService.applyImport(parsed.manifest, parsed),
+          relaunch: () => undefined,
+        })
+        setSaveNote(importNote(outcome))
       } catch (cause) {
         setSaveNote(toUserMessage(cause))
       } finally {
@@ -258,6 +333,51 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
     },
     [fingerprint],
   )
+
+  /**
+   * 确认导入（会结束当前这局）。
+   *
+   * 顺序由 `importSavePackage` 固定：停 → 等退出快照归档 → 写导入 → 重启。
+   * 这里只负责把「停」与「重启」接到运行时上。
+   */
+  const confirmImport = useCallback(async () => {
+    const parsed = pendingImport
+    if (!parsed || !fingerprint) return
+
+    setSaveBusy(true)
+    setSaveNote(null)
+    try {
+      const outcome = await importSavePackage(parsed, fingerprint, stateRef.current, {
+        stop: async () => {
+          try {
+            await runtimeRef.current?.stop()
+          } catch {
+            // 停不下来也要继续：内核没有优雅退出路径，卸载时 dispose 兜底。
+          }
+          // `stop()` 只保证宿主发出了快照，落盘是异步的。不等它就写导入的话，
+          // 退出快照会排在导入之后，把刚写入的档盖回旧内容。
+          await archiveChain.current
+        },
+        apply: async () => {
+          // 从这一刻起旧实例的迟到快照不再写归档（见 suspendArchive 的注释）。
+          suspendArchive.current = true
+          await saveService.applyImport(parsed.manifest, parsed)
+        },
+        relaunch: () => setAttempt((n) => n + 1),
+      })
+      setPendingImport(null)
+      setSaveNote(importNote(outcome))
+    } catch (cause) {
+      setSaveNote(toUserMessage(cause))
+    } finally {
+      setSaveBusy(false)
+    }
+  }, [pendingImport, fingerprint])
+
+  const cancelImport = useCallback(() => {
+    setPendingImport(null)
+    setSaveNote(null)
+  }, [])
 
   const running = state === 'running'
   // 暂停时画面还有内容，遮住反而让人以为崩了；其余状态画面都是黑的。
@@ -288,7 +408,11 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
       </header>
 
       {savesOpen ? (
-        <div className="player__saves" role="group" aria-label="存档">
+        <div
+          className={`player__saves${pendingImport ? ' player__saves--wide' : ''}`}
+          role="group"
+          aria-label="存档"
+        >
           <button type="button" className="player__saves-item" disabled={saveBusy} onClick={handleExport}>
             导出存档
           </button>
@@ -296,6 +420,41 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
             导入存档
             <input type="file" accept=".zip,application/zip" onChange={handleImport} />
           </label>
+          {/*
+            导入了当前游戏、而它正在跑：不能直接写归档（会被退出快照盖回去），
+            所以在这里停下来问一句。三个出口都给出来，包括「先导出当前进度」。
+          */}
+          {pendingImport ? (
+            <div className="player__saves-confirm" role="alertdialog" aria-label="导入确认">
+              <p className="player__saves-warn">
+                导入会结束当前游戏并替换它的存档。尚未导出的进度会被覆盖。
+              </p>
+              <button
+                type="button"
+                className="player__saves-item"
+                disabled={saveBusy}
+                onClick={handleExport}
+              >
+                先导出当前存档
+              </button>
+              <button
+                type="button"
+                className="player__saves-item player__saves-item--danger"
+                disabled={saveBusy}
+                onClick={confirmImport}
+              >
+                替换并重启
+              </button>
+              <button
+                type="button"
+                className="player__saves-item"
+                disabled={saveBusy}
+                onClick={cancelImport}
+              >
+                取消
+              </button>
+            </div>
+          ) : null}
           {saveNote ? <p className="player__saves-note">{saveNote}</p> : null}
         </div>
       ) : null}
@@ -367,6 +526,25 @@ function downloadBlob(blob: Blob, filename: string): void {
   anchor.click()
   anchor.remove()
   window.setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
+/**
+ * 导入结果的提示语。
+ *
+ * 三种结果对应三种不同的「接下来会发生什么」，不能合并成一句「已导入」：
+ * 导入别的游戏的档之后当前这局什么都没变，说「重新进入游戏后生效」会让人白等。
+ */
+function importNote(outcome: ImportOutcome): string {
+  switch (outcome.kind) {
+    case 'foreign':
+      // 包里有它自己的指纹，就还给它的游戏 —— 不强行塞进当前游戏，
+      // 否则「导入别人的档」会变成「把当前游戏的档换成别人的」。
+      return `这份存档属于「${outcome.displayName}」，已存到它名下`
+    case 'restarted':
+      return `已导入「${outcome.displayName}」的存档，正在重新启动…`
+    case 'pending':
+      return '已导入，重新进入游戏后生效'
+  }
 }
 
 /**

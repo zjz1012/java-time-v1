@@ -264,6 +264,9 @@ code {
   gap: 4px;
   min-width: 156px;
   padding: 6px;
+  /* 展开确认面板 + 提示语后可能比屏幕还高：让它自己能滚，而不是把「取消」顶出屏幕。 */
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -271,7 +274,11 @@ code {
 }
 
 .player__saves-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  /* 44px 是可点下限。这一栏里有「替换并重启」这种破坏性动作，
+     和「取消」挨着排，矮一点就会点错。 */
+  min-height: 44px;
   font: inherit;
   font-size: 13px;
   line-height: 1.6;
@@ -306,6 +313,37 @@ code {
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-dim);
+}
+
+/* 确认导入时面板要变宽：三行按钮 + 一段说明挤在 156px 里会折成一条竖线。 */
+.player__saves--wide {
+  min-width: 232px;
+  max-width: min(320px, calc(100vw - 20px));
+}
+
+.player__saves-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.player__saves-warn {
+  margin: 0;
+  padding: 2px 8px 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+/*
+ * 「替换并重启」是破坏性动作（当前进度会被覆盖），用红色区分。
+ * 它和「取消」长得一样的话，手指落在哪个上全靠运气。
+ */
+.player__saves-item--danger {
+  color: #c0392b;
 }
 
 .player__error {

@@ -19,4 +19,11 @@ export {
   type SaveRepository,
 } from './archive'
 export { createSaveService, type SaveService } from './service'
+export {
+  canImport,
+  importSavePackage,
+  needsRestart,
+  type ImportHandlers,
+  type ImportOutcome,
+} from './import-flow'
 export { ZipError, type ZipErrorCode } from './zip'

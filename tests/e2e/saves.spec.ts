@@ -41,6 +41,11 @@ async function writeSave(page: Page, path: string, bytes: number[]): Promise<voi
       if (!win) throw new Error('iframe 不可用')
       const fs = win.fs
       ;(fs.mkdirp as (p: string) => unknown)('/RecordStore')
+      // `fs.create` 对已存在的路径不会覆盖（内核的语义是「新建」），
+      // 所以先删一次，让这个辅助函数可以重复写同一个路径。
+      if ((fs.exists as (p: string) => boolean)(target)) {
+        ;(fs.remove as (p: string) => unknown)(target)
+      }
       ;(fs.create as (p: string, b: Blob) => unknown)(target, new Blob([new Uint8Array(payload)]))
       return new Promise((resolve) => {
         // 走真实的提交路径（RecordStoreFile.commitWrite 就是调这个）
@@ -135,7 +140,7 @@ test.describe('存档', () => {
     expect(await readSave(page, '/RecordStore/idle-save.db')).toEqual([1, 2, 3])
   })
 
-  test('导出得到可解开的 ZIP，导入后提示已生效', async ({ page }) => {
+  test('运行中导入：先确认，重启后内核读到的就是导入的档', async ({ page }) => {
     await openPlayer(page)
     await writeSave(page, SAVE_PATH, [99])
 
@@ -152,9 +157,27 @@ test.describe('存档', () => {
     // PK\x03\x04：本地文件头签名
     expect(Array.from(head)).toEqual([0x50, 0x4b, 0x03, 0x04])
 
-    // 再导回同一款游戏
+    /*
+     * 把内核里的档改成别的值，再导入刚才导出的包。
+     *
+     * 只断言「提示说已导入」是不够的：以前那种「直接写归档」的做法也能提示成功，
+     * 而退出快照随后会把档覆盖回 [1,1,1]。所以最终判据是**重启后内核里读到什么**。
+     */
+    await writeSave(page, SAVE_PATH, [1, 1, 1])
+    expect(await readSave(page, SAVE_PATH)).toEqual([1, 1, 1])
+
     await page.locator('.player__saves input[type=file]').setInputFiles(zipPath as string)
+
+    // 游戏还在跑：不能直接覆盖，必须先问一句。
+    await expect(page.locator('.player__saves-confirm')).toBeVisible()
+    await page.locator('.player__saves-confirm button', { hasText: '替换并重启' }).click()
+
+    // 先确认它真的停了，否则「运行中」可能只是还没开始停的旧状态。
+    await expect(page.locator('.badge')).not.toHaveText('运行中', { timeout: 15_000 })
+    await expect(page.locator('.badge')).toHaveText('运行中', { timeout: 90_000 })
     await expect(page.locator('.player__saves-note')).toContainText('已导入')
+
+    expect(await readSave(page, SAVE_PATH)).toEqual([99])
   })
 
   test('导入损坏的包被拒绝，且原存档不动', async ({ page }) => {
