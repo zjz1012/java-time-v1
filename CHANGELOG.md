@@ -7,6 +7,23 @@
 
 ### 修复
 
+- **播短音效的游戏会永久卡住**（P0）。报的是「很多游戏能跑起来，但实际玩会卡住」。
+  查下来是内核 TonePlayer 用 `current + duration - FADE_TIME`（FADE_TIME = 0.1）
+  算淡出起点，播短于 100ms 的音效时算出负时间，WebAudio 抛 RangeError，而它的
+  抛出栈是 `playTone → NativeTonePlayer.nPlayTone → interpret → Thread.run` ——
+  **异常从 Java 线程的 run 循环里逃逸，那条线程就没了**。浏览器主线程是空闲的，
+  所以现象不是「页面卡死」而是「游戏不动了」。实测 City Shield 在菜单里按一次
+  方向键（播选中提示音）就钉死，19 秒画面一帧没变。现在在宿主页加载内核前把
+  AudioParam 的时间参数钳到合法范围；不改内核产物（上游 GPL 构建物、不入库）。
+- **缺 native 实现的游戏不再干等 20 秒**。6 款的 MIDlet 构造 Form 时就撞上未实现
+  的方法（ChoiceGroup 5 款、Ticker 1 款），内核把这句话打印成 `console.error`
+  后继续跑，画面永远不出来，外壳只能等满 20 秒报「启动超时」。现在听这句错误，
+  给 3 秒宽限，仍未出画就按 `UNSUPPORTED_CAPABILITY` 失败，并把缺失的控件
+  翻成人话：「这款游戏用到了列表选择控件（ChoiceGroup），内核没有实现它。」
+- `fail()` 现在留一行 `[host] fail: <code> · <message>`；宿主页的失败原因只出现
+  一次且常被外壳换成面向用户的措辞，排查时不能靠猜。
+- `UNSUPPORTED_CAPABILITY` 开始透传 detail（原先只有 `SAVE_RESTORE_FAILED` 透传），
+  否则「缺的是哪个控件」到不了界面。
 - **内核构建被仓库根的 `@types` 污染**（P0）。发布验收第一次真跑到「构建内核」，
   然后 tsc 报了 3216 处语法错误 —— 错的全是 `node_modules` 里的 `.d.ts`
   （`undici-types`、`@types/chai`、`@types/react`），没有一处是上游代码。
