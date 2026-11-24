@@ -8,7 +8,8 @@
 > 发布验收工作流已就位（构建内核 → 真浏览器 e2e → 报告门禁），倍速与关于页待做。
 > 仓库**不含可运行的模拟器产物**（`public/kernel/` 是本机构建输出），
 > 但**含随包分发的内置游戏**（`public/games/`，来源逐条登记在
-> [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md) §5）。
+> [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md) §5）与**自研 6 款的
+> 完整源码**（`midlets/src/` —— 采用 GPL-2.0-or-later，对应源码随二进制一并提供）。
 
 ---
 
@@ -25,13 +26,14 @@ V1.0 是**独立重构版**，不继承旧版代码。模拟器内核由上游�
 
 | 能力 | 状态 |
 |---|---|
-| 安装、构建、类型检查、单元测试 | ✅ 可用（258 项单元测试） |
+| 安装、构建、类型检查、单元测试 | ✅ 可用（289 项单元测试） |
 | 运行时适配契约 + Mock 实现 | ✅ 契约测试覆盖成功/失败/超时/取消 |
 | J2ME 内核（真实） | ✅ 能启动出画，有 Playwright 冒烟用例 |
 | 键位映射 + 虚拟键区 | ✅ PC 键盘、多点触控、失焦抬键（诺基亚式竖屏键区） |
-| 启动遮罩 / 失败提示 / 重试 | ✅ 坏包靠超时兜底，15 秒后给可读提示 |
-| 存档：按游戏隔离 + ZIP 导出/导入 | ✅ 外壳托管；真内核 e2e 覆盖「写档→退出→重进读回」与「运行中导入→确认→重启」 |
-| 游戏库：104 款内置 + 本地导入 | ✅ 搜索、分类筛选、「我导入的」、最近游玩；导入读 `MIDlet-Name` 当标题 |
+| 启动遮罩 / 失败提示 / 重试 | ✅ 导入时先验 JAR 结构，普通 ZIP 进不了库；`?jar=` 通道仍靠 15 秒超时兜底并给可读提示 |
+| 存档：按游戏隔离 + ZIP 导出/导入 | ✅ 外壳托管；写失败不静默（提示条 + 退出拦截 + 重试 / 紧急导出 / 返回 / 放弃）；真内核 e2e 覆盖「写档→退出→重进读回」与「运行中导入→确认→重启」 |
+| 游戏库：104 款内置 + 本地导入 | ✅ 搜索、分类筛选、「我导入的」、最近游玩；导入校验 manifest、`MIDlet-1` 与主类，标题取 `MIDlet-Name` |
+| 许可与来源登记 | ✅ 104 款逐款 sha256 / 上游 commit / 版权人（`docs/provenance/games.json`）；自研 6 款源码入库且可重建比对 |
 | 倍速 / 关于页 | ⛔ 未开始 |
 
 内置的 104 款是自研 6 款加三批 MIT 作品（98 款），来源与许可逐条登记在
@@ -47,13 +49,18 @@ V1.0 是**独立重构版**，不继承旧版代码。模拟器内核由上游�
 
 | 命令 | 覆盖什么 | 需要内核产物 |
 |---|---|---|
-| `npm run test` | 状态机、取消语义、键位表、协议一致性、页面结构、存档格式/隔离/导入时序、内容指纹、库页搜索/筛选/路由/导入边界/manifest 解析 | 否 |
-| `npm run test:e2e` | 真内核：启动出画、方向输入进 JVM、退出、再次启动、存档写→退→重进、运行中导入→确认→重启、库页点开→退出→最近玩过 | **是** |
+| `npm run test` | 状态机、取消语义、键位表、协议一致性、页面结构、存档格式/隔离/导入时序/写失败出路、内容指纹、库页搜索/筛选/路由/导入边界/JAR 预检 | 否 |
+| `npm run test:e2e` | 真内核：启动出画、方向输入进 JVM、退出、再次启动、存档写→退→重进、运行中导入→确认→重启、库页点开→退出→最近玩过、存档写失败四条出路 | **是** |
 | `npm run check:games` | 内置游戏清单与 `public/games/*.data` 逐款一致（重算 sha256、数量、指纹唯一） | 否 |
+| `npm run check:provenance` | 依赖与随包游戏逐款来源登记齐全（上游 commit、路径、版权人、许可），且哈希与产物相符 | 否 |
+| `npm run check:midlets` | 自研 6 款的源码在、manifest 与产物对得上（不需要 JDK） | 否 |
+| `npm run verify:midlets` | 有 JDK 时重编译自研 6 款，与随包产物逐条目比字节 | 否 |
 | `npm run verify:e2e-report <报告>` | 证明 e2e **确实跑过**：0 通过 / 有跳过 / 有 flaky 一律失败 | — |
 
-`test:e2e` 依赖 `public/kernel/` 与 `public/assets/sokoban.jar`，两者都不入库。
-缺产物时用例会**显式跳过并打印缺了哪个文件**，不会静默通过。
+`test:e2e` 只需要 `public/kernel/`（不入库的构建产物）。测试游戏用的是**随包分发**
+的自研推箱子 `public/games/sokoban.data` —— 入库文件，新克隆就直接有，不需要另配
+secret，也不会出现「测试专用副本与线上文件不一致」。缺内核产物时用例会**显式跳过
+并打印缺了哪个文件**，不会静默通过。
 
 常态 CI（`.github/workflows/ci.yml`）只到第一层：内核产物按要求不入库，
 它的 `kernel-smoke` job 名字里就写着「仅加载校验，不执行内核」——
@@ -66,7 +73,8 @@ V1.0 是**独立重构版**，不继承旧版代码。模拟器内核由上游�
 | 情况 | 为什么会失败 |
 |---|---|
 | 内核产物缺失 | `REQUIRE_KERNEL=1` 让 `check:kernels` 直接报错，不再「跳过通过」 |
-| 测试程序包缺失 | 工作流显式 `exit 1`（包不入库，可用 secret `E2E_TEST_JAR_B64` 提供） |
+| 随包游戏缺失或指纹不符 | 构建之前先跑 `check:games`，104 款逐款重算 sha256 |
+| 自研源码与产物对不上 | 构建之前先跑 `check:midlets`：源码缺失、类名 / `MIDlet-1` / 主类条目不一致都红 |
 | 用例被跳过 | `playwright test` 对「全部 skip」的退出码是 **0**，只看退出码会把「没跑」当成「跑通了」 |
 | 有 flaky | 重试才过说明存在偶发问题，发布前要知道 |
 
@@ -94,12 +102,14 @@ npm run build      # 生产构建
 在库里点「导入游戏」选一个 `.jar`（存在本机浏览器里），或者用开发通道：
 
 ```bash
-cp <任意 .jar> public/assets/game.jar      # public/assets/*.jar 不入库
 npm run dev
-# 打开 http://localhost:5183/?jar=/assets/game.jar&name=推箱子
+# 打开 http://localhost:5183/?jar=/games/sokoban.data&name=推箱子
 ```
 
-`?jar=` 是给排查内核问题用的：它不需要库条目，也不写游玩记录。
+`?jar=` 是给排查内核问题用的：它不需要库条目，也不写游玩记录。路径可以直接指向
+随包分发的某一款（`public/games/*.data`），也可以把任意 `.jar` 放到 `public/` 下的
+临时目录再指过去 —— 但那种文件不入库，只适合本机。导入游戏请走库页的「导入游戏」，
+它会做 JAR 预检并算出存档指纹。
 
 键位：方向键 / WASD 移动，空格或回车确认，`[` `]` 或 F1 F2 左右软键，数字键直输，
 退格是清除键。手机上用的是屏幕下方的虚拟键区，照诺基亚直板机排：软键 → 圆形导航盘
@@ -112,6 +122,11 @@ V1.0 只做竖屏，横屏不做适配。
 
 内核产物不在仓库里，需要本机工具链编译。见 [`scripts/README.md`](scripts/README.md)。
 额外需要 Emscripten 2.0.34、JDK、Python 3。
+
+自研那 6 款游戏反过来是「源码在仓库、产物也在仓库」，两者要能对上：
+`npm run check:midlets` 只验结构（不需要 JDK），`npm run verify:midlets` 会重编译
+并逐 class 比字节 —— 需要 JDK 和已经构建好的内核 classpath。见
+[`midlets/README.md`](midlets/README.md)。
 
 ## 目录
 
@@ -129,7 +144,10 @@ src/
 public/
 ├── games/     内置游戏的包体与封面（随包分发，来源见 SOURCES.md §5）
 ├── runtime/   宿主页 host.html
-└── assets/    测试用程序包（不入库）
+└── assets/    本机临时放进去的程序包（不入库，只给 `?jar=` 调试用）
+midlets/
+├── src/       自研 6 款的完整 Java 源码（GPL-2.0-or-later 的对应源码）
+└── games.json 源码 ↔ manifest 名字 ↔ 主类的对照（构建脚本读它）
 docs/
 ├── provenance/  来源登记、第三方声明、内核评估
 ├── decisions/   架构决策记录（ADR）
@@ -149,7 +167,9 @@ tests/         单元 / 集成 / E2E / 测试固件
 - **内核**（PluotSorbet 及其编译产物）：`GPL-2.0`（上游 LICENSE 无 "or later"），
   不在本仓库内，按 [`scripts/README.md`](scripts/README.md) 从上游源码重建；
   来源与 commit 见 [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md)。
-- **随包游戏**：自研 6 款（同本仓库许可）+ MIT 98 款（各自保留原版权声明）。
+- **随包游戏**：自研 6 款（同本仓库许可，源码在 `midlets/src/`）+ MIT 98 款
+  （各自保留原版权声明）。逐款的 commit、路径、版权人与哈希见
+  [`docs/provenance/games.json`](docs/provenance/games.json)。
 
 自有代码采用 `or-later` 而非 `only`，是为了与 v2-only 的内核能合法组成整体按 GPLv2
 分发，同时保留日后整体升到 v3 的余地。完整推导与代价见

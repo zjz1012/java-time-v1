@@ -7,6 +7,32 @@
 
 ### 修复
 
+- **发布门禁不再等一个不存在的测试包**（P0）。`release.yml` 曾经从 secret 还原
+  `public/assets/e2e-test.jar`，而 e2e 要的是 `public/assets/sokoban.jar` ——
+  两个名字都对不上仓库：前者的路径被 `.gitignore` 忽略，后者从来没存在过。
+  所以配了 secret 也会在「准备测试程序包」这一步失败，后面的内核构建与 E2E 根本
+  没执行（实际失败的发布任务正是这样）。现在**删掉整个准备步骤与 secret**，直接
+  用随包分发的 `public/games/sokoban.data`（它本来就是 JAR，只是换了后缀以避免
+  平台把 `.zip` 系文件当嵌套包丢弃），并在构建内核之前跑一次 `check:games`。
+  另加守卫测试：e2e 引用的每个 `public/...` 路径都必须被 `git ls-files` 认得，
+  「本地绿、CI 挂」这一类问题从此有自动化兜底。
+- **存档写入失败不再静默**（P0）。`PlayerScreen.tsx` 里归档写入失败只有
+  `console.warn`，配额不足时用户照常回库页，不知道最新存档没进去。现在分三处
+  交代：运行时在画面底部浮一条提示（绝对定位，**不参与布局** —— 运行区高度就是
+  J2ME 屏幕分辨率，挤一行会让内核按新尺寸重排，实测被压掉 46px）；点退出先被
+  拦下并弹框；框里四个动作 —— 「重试保存 / 导出这次进度 / 返回游戏 / 放弃并退出」。
+  顺序是**先问再停**：确认放弃才真的 `stop()`，所以「返回游戏」是真的能继续玩；
+  「导出这次进度」直接打包内存里的快照（走 `exportZip` 会读到旧档）。
+  配额错误同时识别 `QuotaExceededError`、旧 WebKit/IDB 的 `code 22`、
+  Firefox 的 `1014` 与 message 关键词；而清空归档（空快照）失败不算「没保存成功」，
+  只让旧档多留一局 —— 报错要看这次写没写进去，不看历史上有没有失败过。
+- **导入本地游戏前先验 JAR 结构**（P1）。原先只验体积与 `PK\x03\x04` 四字节，
+  普通 ZIP 也能进库：卡片显示正常，点进去转十几秒，给一句「启动超时」。
+  现在要求 `META-INF/MANIFEST.MF` 存在、`MIDlet-1` 形如「名称,图标,主类」、
+  主类条目真的在包里，缺一件就拒，并把理由翻成「不是可启动的 J2ME 程序」
+  「主类 X 不在包里」这种能照着排查的话。manifest 解压加硬上限（解压后 64 KiB、
+  压缩态 256 KiB、中央目录 2048 条），用 `ReadableStream` 边读边数，超限立刻
+  `cancel()` —— `Response.arrayBuffer()` 是「先解完再看大小」，等看到就晚了。
 - **存档指纹不再有常量退路**（P0）。`sha256Hex` 在 `crypto.subtle` 缺失时曾返回
   固定串 `sha256:unavailable`，注释还写着「退化后仍能隔离」。这是错的：所有游戏
   拿到同一个指纹就等于共享同一个存档键，装第二个游戏会覆盖第一个的存档。
@@ -40,7 +66,8 @@
   - 路由改成 hash（`#/`、`#/play/<id>`），静态托管放子路径也不会 404；
     `?jar=` 保留为开发通道，不写游玩记录。
   - 搜索是「空格分词 + 全部命中」，不做拼音（宁可搜不到，也不要搜出一堆无关结果）。
-  - 导入按不可信输入处理：体积上限 16 MiB、ZIP 魔数、指纹格式、id 冲突；
+  - 导入按不可信输入处理：体积上限 16 MiB、ZIP 魔数、**JAR 结构预检**
+    （manifest / 三段式 `MIDlet-1` / 主类在包里，见「修复」）、指纹格式、id 冲突；
     标题优先取 `META-INF/MANIFEST.MF` 的 `MIDlet-Name`（导入 `sokoban.jar`
     显示「推箱子」），读不到才退回文件名。解压只用 `DecompressionStream`，
     任何异常都降级，不打断导入。
@@ -51,8 +78,8 @@
   校验报告。**0 通过、有跳过、有 flaky 都判失败** —— 因为 `playwright test` 对
   「全部 skip」的退出码是 0，「没跑」和「跑过了」不能都是绿色。
   `check-kernel-artifacts.mjs` 新增 `REQUIRE_KERNEL=1`：缺产物直接失败，不再跳过。
-  「准备测试程序包」这一步排在构建内核**之前** —— 缺包是最常见的失败，而构建要
-  20 分钟，排后面等于让人等 20 分钟才知道少了东西。
+  `check:games` 排在构建内核**之前** —— 随包游戏缺失或指纹不符是最常见的失败，
+  而构建要 20 分钟，排后面等于让人等 20 分钟才知道仓库不完整。
 - `tests/unit/host-restore.test.ts`：把 `host.html` 的脚本放进 `vm` 跑，证明
   「恢复失败 → `SAVE_RESTORE_FAILED` → 一个内核脚本都不加载」。
 - `tests/unit/saves-import.test.ts`：导入时序（`stop → apply → relaunch`）与
@@ -61,12 +88,35 @@
   结果不变、`subtle` 抛错时降级。
 - `tests/unit/saves-archive.test.ts` 新增「指纹门禁」一组：占位串 / 空串 / 无前缀 /
   大写十六进制 / 非法长度在读、写、导出、导入四个入口都被拒，且**归档被拒时
-  不会覆盖别的游戏** —— 这与「串档之后界面一切正常」正好相反，所以要单独钉住。- 单元测试总数 110 → 258；其中 `saves-format` 11 → 30（构造包全覆盖）、
-  `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 12，
-  新增 `hash` 13 / `host-restore` 9 / `saves-import` 11 /
+  不会覆盖别的游戏** —— 这与「串档之后界面一切正常」正好相反，所以要单独钉住。
+- **六款自研游戏的对应源码入库**（F21）。采用 GPL-2.0-or-later 就该随二进制一起
+  提供对应源码，而仓库此前只有 `public/games/*.data`。现在 `midlets/src/` 下是
+  六份完整源码（Snake / Breakout / Memory / Game2048 / Sokoban / Drop，约 1300 行），
+  `midlets/games.json` 记录每款的 manifest 名字与主类，`scripts/build-midlets.mjs`
+  用 `javac --release 8 -cp public/kernel/java/classes.data` 重编译再 `jar cfm`
+  打包，与随包产物**逐条目比字节**（manifest 忽略 `Created-By`）—— 实测 6 款
+  共 18 个 class 全部一致。默认只校验、不写回：换产物就是换内容指纹，等于让已有的
+  存档键和 catalog 指纹一起失效，所以 `--install` 必须显式给。命令是
+  `npm run check:midlets`（结构，无需 JDK）/ `npm run verify:midlets`（重编译比对）。
+- **104 款游戏逐款来源登记**（F20）。`docs/provenance/games.json` 每款记
+  `sha256`（整包）、class 清单、上游 `repo` / 40 位 `commit` / 文件 `path`、
+  `copyright`、`license`，以及这次是怎么得到产物的 —— `self`（自研，另带
+  `sourcePath` 与构建方式）、`upstream-source`（97 款，编译上游源码）、
+  `upstream-jar`（1 款，仅删两个条目）。`check:provenance` 新增 §7：与 catalog
+  双向对齐、逐款重算哈希、核对每个 commit 都在 `SOURCES.md` 出现。哈希和来源
+  是两件事：前者证明「没被换过」，后者证明「有权分发」，缺哪个都不算完整。
+  一个副产物：pisces312 那 7 款不能记成「重打包上游 jar」—— 上游 `dist/*.jar`
+  是混淆产物（`a.class`、`b.class`），本项目用的是 `src/` 的原名类。
+- 单元测试总数 110 → 289；其中 `saves-format` 11 → 30（构造包全覆盖）、
+  `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 15（新增「e2e 只依赖
+  入库的文件」三条），新增 `hash` 13 / `host-restore` 9 / `saves-import` 11 /
+  `saves-failure` 11（配额五种错误形态、空快照不报错、紧急导出不读仓储）/
+  `player-save-failure` 7（先问再停的顺序、四个出口、提示条不进 flex 流）/
   `library-catalog` 8 / `library-routes` 11 / `library-filter` 16 /
-  `library-store` 11 / `library-import` 19 / `library-manifest` 15。
-  真内核 e2e 9 → 14 项（32 秒），新增 `library.spec.ts` 5 项。
+  `library-store` 11 / `library-import` 20 / `library-jar` 24
+  （取代 `library-manifest` 15，含「随包 104 款全部通过预检」）。
+  真内核 e2e 9 → 16 项，新增 `library.spec.ts` 5 项与 `save-failure.spec.ts` 2 项
+  （配额报错全流程、重试成功后字节真的进 IndexedDB）。
 
 - **存档（F13 / F14 / F15）：外壳托管，内核文件系统只作运行期缓存**。见
   `docs/decisions/0005-saves.md`。
