@@ -385,6 +385,86 @@
   color: var(--accent);
 }
 
+/* --------------------------------------------------------- 本机数据 */
+
+/*
+ * 一块「事实 + 一个动作」的区域：多少份存档、清空。
+ * 用虚线框而不是卡片阴影：它不是游戏，不该和下面的网格抢视觉。
+ */
+.library__data {
+  margin-top: 26px;
+  padding: 14px 14px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.library__data-line {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.library__data-hint {
+  margin: 0 0 10px;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.75;
+}
+
+.library__data-note {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--accent);
+}
+
+.library__data-warn {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--danger);
+}
+
+.library__data-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/*
+ * 触控目标：手机上一行小字按钮基本点不中，44px 是下限。
+ */
+.library__data-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.library__data-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.library__data-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* 危险动作单独着色：它和「取消」长得一样的话，点错就丢档。 */
+.library__data-btn--danger {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+  color: var(--danger);
+}
+
+.library__data-btn--danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 /* ----------------------------------------------------------------- 页脚 */
 
 .library__foot {

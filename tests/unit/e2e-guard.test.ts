@@ -225,12 +225,18 @@ describe('e2e 只依赖入库的文件', () => {
   it('测试游戏用的是随包分发的那一款，两个 spec 共用一个常量', () => {
     const game = codeOf('game.ts')
     expect(game).toContain("'public/games/sokoban.data'")
-    // 两个 spec 各写一遍路径正是这次缺陷的成因。
+    // 两个 spec 各写一遍路径正是这次缺陷的成因。允许经 `./player` 间接取
+    // （那里放着共用的开/写/退动作），只要常量仍然只有 `game.ts` 一处。
     for (const file of ['kernel-smoke.spec.ts', 'saves.spec.ts']) {
       const code = codeOf(file)
-      expect(code, `${file} 应该 import ./game`).toContain("from './game'")
+      expect(code, `${file} 应该从 ./game 或 ./player 取测试游戏`).toMatch(
+        /from '\.\/(game|player)'/,
+      )
       expect(code, `${file} 不该自己写死游戏路径`).not.toContain('public/games')
     }
+    // `player.ts` 自己也不许另立一份路径
+    expect(codeOf('player.ts')).toContain("from './game'")
+    expect(codeOf('player.ts')).not.toContain('public/games')
   })
 })
 

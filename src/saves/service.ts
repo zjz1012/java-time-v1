@@ -67,6 +67,22 @@ export interface SaveService {
   /** 把一个已校验的包写进归档。 */
   applyImport(manifest: UnpackResult['manifest'], result: UnpackResult): Promise<void>
   list(): Promise<ArchivedSave[]>
+  /**
+   * 删掉一份存档。
+   *
+   * 与「归档一份空快照」等价（`archive` 内部也走 `remove`），但语义直白：
+   * 这是清理，不是保存。
+   */
+  remove(fingerprint: string): Promise<void>
+  /**
+   * 清空这台设备上的全部存档，返回删掉的份数。
+   *
+   * 存在的理由是「提示条让用户去清理存储，但用户没地方清」—— 那句
+   * 「清理一些浏览器存储」指向的动作必须真的存在，否则它只是把问题
+   * 推给用户。逐个删而不是整库 `clear()`：整库清空会把「导入的游戏」
+   * 一起带走，那是另一件事，得由用户单独决定。
+   */
+  clearAll(): Promise<number>
 }
 
 export function createSaveService(repository: SaveRepository): SaveService {
@@ -145,6 +161,26 @@ export function createSaveService(repository: SaveRepository): SaveService {
 
     list() {
       return repository.list()
+    },
+
+    async remove(fingerprint) {
+      // 删错键的后果是「把别人的存档删了」，同样是不可逆的，所以照样守门。
+      assertFingerprint(fingerprint)
+      await repository.remove(fingerprint)
+    },
+
+    async clearAll() {
+      /*
+       * 这里不校验指纹格式，是有意的：删的键来自 `repository.list()`，
+       * 也就是「库里确实存在的键」，不是调用方递进来的值。门禁防的是
+       * 「用坏键去写，于是两 games 共用一个槽」，删不涉及这个问题；
+       * 反过来，因为一条脏键就拒绝清理全部，会让用户卡在一个清不掉的状态。
+       */
+      const saves = await repository.list()
+      for (const save of saves) {
+        await repository.remove(save.fingerprint)
+      }
+      return saves.length
     },
   }
 }

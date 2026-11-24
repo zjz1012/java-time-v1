@@ -20,6 +20,7 @@ import {
   type PlayRecord,
 } from '@/library'
 import { libraryRepository } from '@/library/instance'
+import { saveService } from '@/saves/instance'
 
 /**
  * 库页。
@@ -44,6 +45,26 @@ export function LibraryScreen() {
   const [importing, setImporting] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
+  /*
+   * 存档份数。
+   *
+   * `null` 表示「还没读到」或「读不到」，与「0 份」必须分开：
+   * 读不到却显示 0，用户会以为存档没了，然后去别的地方找原因。
+   */
+  const [saveCount, setSaveCount] = useState<number | null>(null)
+  const [clearArmed, setClearArmed] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [dataNote, setDataNote] = useState<string | null>(null)
+
+  const refreshSaves = useCallback(async () => {
+    try {
+      const saves = await saveService.list()
+      setSaveCount(saves.length)
+    } catch {
+      setSaveCount(null)
+    }
+  }, [])
+
   const refresh = useCallback(async () => {
     try {
       // 两个读并行：库与游玩记录互不依赖，串行只是让首屏白等一倍时间。
@@ -62,7 +83,9 @@ export function LibraryScreen() {
 
   useEffect(() => {
     void refresh()
-  }, [refresh])
+    // 存档份数与库一起读：这两块都在「本机数据」里，分开转圈只会让一处先空着。
+    void refreshSaves()
+  }, [refresh, refreshSaves])
 
   const visible = useMemo(() => queryLibrary(games, query), [games, query])
   const recent = useMemo(() => recentGames(games, plays), [games, plays])
@@ -111,6 +134,27 @@ export function LibraryScreen() {
   )
 
   const resetQuery = useCallback(() => setQuery({ text: '', category: null }), [])
+
+  /**
+   * 清空全部存档。
+   *
+   * 二次确认是这里唯一不能省的东西：存档只存在这台设备上，删掉就真的没有了
+   * —— 没有云端、没有回收站。所以按钮先变成一句「确认清空 N 份」，再说一次
+   * 「没有云端备份」，而不是点一下就动手。
+   */
+  const clearSaves = useCallback(async () => {
+    setClearing(true)
+    try {
+      const removed = await saveService.clearAll()
+      setSaveCount(0)
+      setClearArmed(false)
+      setDataNote(removed > 0 ? `已清空 ${removed} 份存档` : '本来就没有存档')
+    } catch (cause) {
+      setDataNote(cause instanceof Error ? `清空失败：${cause.message}` : '清空失败')
+    } finally {
+      setClearing(false)
+    }
+  }, [])
 
   return (
     <main className="library">
@@ -229,6 +273,67 @@ export function LibraryScreen() {
             ))}
           </div>
         )}
+      </section>
+
+      {/*
+        本机数据。
+        存档只在这台设备上，而「配额不足」的提示条告诉用户「清理一些浏览器
+        存储」—— 那个动作原先并不存在，等于把问题推回给用户。这块面板就是它。
+        清理只碰存档，不碰导入的游戏：那是两件事，混在一个按钮里会让人为了
+        腾空间顺手删掉游戏。
+      */}
+      <section className="library__data" aria-label="本机数据">
+        <h2 className="library__section-title">本机数据</h2>
+        <p className="library__data-line">
+          导入的游戏 {importedCount} 款 · 存档{' '}
+          {saveCount === null ? '读不到' : `${saveCount} 份`}
+        </p>
+        <p className="library__data-hint">
+          存档只存在这台设备的浏览器里，换设备或清理浏览数据就没有了。要带走，在游戏里用「存档 →
+          导出」。
+        </p>
+
+        {dataNote ? (
+          <p className="library__data-note" role="status">
+            {dataNote}
+          </p>
+        ) : null}
+
+        {saveCount !== null && saveCount > 0 ? (
+          clearArmed ? (
+            <div className="library__data-confirm" role="alertdialog" aria-label="确认清空存档">
+              <p className="library__data-warn">
+                清空后无法恢复：这是这份进度唯一的一份，没有云端备份。
+              </p>
+              <div className="library__data-actions">
+                <button
+                  type="button"
+                  className="library__data-btn"
+                  onClick={() => setClearArmed(false)}
+                  disabled={clearing}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="library__data-btn library__data-btn--danger"
+                  onClick={clearSaves}
+                  disabled={clearing}
+                >
+                  {clearing ? '清空中…' : `确认清空 ${saveCount} 份`}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="library__data-btn"
+              onClick={() => setClearArmed(true)}
+            >
+              清空全部存档
+            </button>
+          )
+        ) : null}
       </section>
 
       <footer className="library__foot">

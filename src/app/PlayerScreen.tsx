@@ -25,22 +25,14 @@ import {
 import {
   archiveFailureOf,
   canImport,
-  createIdbRepository,
-  createSaveService,
   describeArchiveFailure,
   importSavePackage,
   needsRestart,
 } from '@/saves'
 import type { ArchiveFailure, ImportOutcome, UnpackResult } from '@/saves'
+import { saveService } from '@/saves/instance'
 import { sha256Hex } from '@/shared/hash'
 import { Keypad } from './Keypad'
-
-/**
- * 仓储是模块级单例：`createIdbRepository` 只建闭包，不打开数据库
- * （首次读写才 open），所以放在模块顶层不会拖慢首屏，也不会在
- * 没有 IndexedDB 的环境里立刻炸。
- */
-const saveService = createSaveService(createIdbRepository())
 
 interface PlayerScreenProps {
   /**
