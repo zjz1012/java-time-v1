@@ -159,6 +159,14 @@
   测试：`saves-clear` 4 项（份数、幂等、只删存档、门禁）、`library-data` 5 项
   （读不到≠0、二次确认、不碰导入的游戏、单例、44px 触控）、e2e 1 项
   「玩一局 → 1 份 → 二次确认清空 → 刷新仍为 0 份」。
+- **退出后重复启动的量化**（F5）。这一条长期只有行为覆盖（退出、再启动、
+  启动途中退出都能跑），没有数字 —— 而「看起来做了」和「测过」是两件事。
+  新增 `memory.spec.ts`：进出 3 次，每次退出后断言 **iframe 数为 0**、注入探针
+  统计活跃 `setTimeout`/`setInterval`/`rAF`、每轮强制 GC 后读 `JSHeapUsedSize`。
+  实测：堆 3.8 / 4.2 / 4.3 MB，活跃定时器 0 / 0 / 0。
+  判据的层次写进了用例头部：`JSHeapUsedSize` 只量外壳所在渲染进程，内核的 wasm
+  线性内存不在这份数字里，所以「内核有没有被释放」的第一判据是 iframe 归零，
+  堆那一层守的是「外壳每轮新建的 runtime / 监听 / 闭包有没有摘掉」。
 - 单元测试总数 110 → 302；其中 `saves-format` 11 → 30（构造包全覆盖）、
   `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 15（新增「e2e 只依赖
   入库的文件」三条），新增 `hash` 13 / `host-restore` 9 / `saves-import` 11 /
@@ -168,8 +176,10 @@
   `library-store` 11 / `library-import` 20 / `library-jar` 24
   （取代 `library-manifest` 15，含「随包 104 款全部通过预检」）/
   `kernel-build-script` 5（内核 tsc 的 `--typeRoots` 守卫）/ `about-page` 6。
-  真内核 e2e 9 → 18 项，新增 `library.spec.ts` 5 项、`save-failure.spec.ts` 2 项
-  （配额报错全流程、重试成功后字节真的进 IndexedDB）、`about.spec.ts` 2 项。
+  真内核 e2e 9 → 22 项，新增 `library.spec.ts` 5 项、`save-failure.spec.ts` 2 项
+  （配额报错全流程、重试成功后字节真的进 IndexedDB）、`about.spec.ts` 2 项、
+  `bad-jar.spec.ts` 2 项（坏包在启动前被拒 + 耗时断言）、`library-data.spec.ts` 1 项、
+  `memory.spec.ts` 1 项（进出 3 次的堆与定时器）。
 
 - **存档（F13 / F14 / F15）：外壳托管，内核文件系统只作运行期缓存**。见
   `docs/decisions/0005-saves.md`。
