@@ -3,6 +3,8 @@ import { join } from 'node:path'
 
 import { expect, test, type Page } from '@playwright/test'
 
+import { PLAYER_URL } from './game'
+
 /**
  * 真内核存档链路：写档 → 退出 → 重新进入 → 读回。
  *
@@ -13,16 +15,12 @@ import { expect, test, type Page } from '@playwright/test'
  */
 
 const ROOT = process.cwd()
-const REQUIRED = [
-  join(ROOT, 'public/kernel/main-all.js'),
-  join(ROOT, 'public/assets/sokoban.jar'),
-]
+const REQUIRED = [join(ROOT, 'public/kernel/main-all.js')]
 const missing = REQUIRED.filter((file) => !existsSync(file))
 if (missing.length > 0) {
   test.skip(true, `缺少内核产物：${missing.join('、')}（重建方式见 scripts/README.md）`)
 }
 
-const PLAYER_URL = '/?jar=/assets/sokoban.jar&name=推箱子'
 const SAVE_PATH = '/RecordStore/probe-save.db'
 const SAVE_BYTES = [11, 22, 33, 44, 55, 66, 77, 88]
 

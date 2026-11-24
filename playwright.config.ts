@@ -3,10 +3,10 @@ import { defineConfig, devices } from '@playwright/test'
 /**
  * 真内核冒烟测试的配置。
  *
- * 用例需要一个**已经构建好的内核**（`public/kernel/`）和一个测试包
- * （`public/assets/*.jar`），两者都不入库 —— 新克隆的仓库要先跑
- * `scripts/fetch-upstream.sh` + `scripts/build-kernel.sh`。缺产物时用例
- * 会显式 skip 并打印原因，不会静默通过。
+ * 用例需要一个**已经构建好的内核**（`public/kernel/`），产物不入库 —— 新克隆的
+ * 仓库要先跑 `scripts/fetch-upstream.sh` + `scripts/build-kernel.sh`。测试游戏
+ * 用的是随包分发的自研推箱子（`public/games/sokoban.data`，入库），不需要另外准备。
+ * 缺产物时用例会显式 skip 并打印原因，不会静默通过。
  *
  * 走 `vite preview` 而不是 dev server：dev 下 React StrictMode 会把
  * 运行页挂载两次，内核跟着启动两次，两个 iframe 抢同一个容器。

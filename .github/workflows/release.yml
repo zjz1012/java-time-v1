@@ -6,7 +6,12 @@ name: Release gate
 # 单次 20 分钟以上；而常态 CI 的每次 push 都跑一遍没有意义。
 # 但**发布**必须跑，而且跑不到时要红 —— 这一条由本工作流负责：
 #   1. `.github/workflows/ci.yml` 的 kernel-smoke 只做「用例能加载」；
-#   2. 本工作流的 kernel-e2e 缺产物、缺测试包、用例被跳过，全部判失败。
+#   2. 本工作流的 kernel-e2e 缺产物、用例被跳过，全部判失败。
+#
+# 测试游戏不需要另外准备：E2E 用的是随包分发的自研推箱子
+# （`public/games/sokoban.data`，见 `tests/e2e/game.ts`）。曾经这里有一段
+# 「从 secret 还原测试包」的步骤，但还原出来的文件名与用例要的名字不一致，
+# 于是「配了 secret 也跑不起来」—— 现在没有这个环节，也就没有这个失败面。
 #
 # 触发：
 #   - 推 `v*` 标签：自动构建内核并跑全量 E2E；
@@ -52,28 +57,18 @@ jobs:
 
       - run: npm ci
 
-      # ───────────────────────── 测试程序包 ─────────────────────────
-      # test JAR 因授权与来源登记的原因不入库（见 .gitignore），但真内核
-      # E2E 没有它就没有东西可启动。
-      #
-      # ★ 放在构建内核**之前**：缺包是最常见的失败原因（第一次跑、换 runner、
-      #   secret 没配），而构建要 20 分钟。按顺序排下去等于让人等 20 分钟才
-      #   看到「少了东西」——这种失败顺序本身就在劝人别跑发布验收。
-      - name: 准备测试程序包
-        env:
-          JAR_B64: ${{ secrets.E2E_TEST_JAR_B64 }}
-        run: |
-          set -euo pipefail
-          mkdir -p public/assets
-          if compgen -G "public/assets/*.jar" > /dev/null; then
-            echo "使用工作区里已有的测试程序包：$(ls public/assets/*.jar | head -1)"
-          elif [ -n "${JAR_B64:-}" ]; then
-            printf '%s' "$JAR_B64" | base64 -d > public/assets/e2e-test.jar
-            echo "已从仓库 secret E2E_TEST_JAR_B64 还原测试程序包"
-          else
-            echo "::error title=缺少测试程序包::public/assets 下没有任何 JAR，且未配置 secret E2E_TEST_JAR_B64。没有它真内核 E2E 无法执行，发布验收必须失败。"
-            exit 1
-          fi
+      # 随包的 104 款游戏（含 E2E 要用的推箱子）是入库文件，先核对一遍。
+      # 放在构建内核之前：这一步几秒钟，能省掉「等 20 分钟才发现仓库不完整」。
+      - name: 校验随包游戏资产
+        run: npm run check:games
+
+      # 自研 6 款按 GPL-2.0-or-later 要随二进制提供对应源码。发布前确认源码在
+      # 仓库里、且与随包产物对得上（类名 / MIDlet-1 / 主类条目）。
+      # 更严格的一步是 `npm run verify:midlets`：重编译后逐 class 比字节。
+      # 它不进这里，是因为「字节一致」依赖 javac 版本 —— 本机 JDK 27 实测一致，
+      # 而 CI 是 JDK 17，把版本差异做成发布门禁只会得到一个偶发红。
+      - name: 校验自研源码与产物
+        run: npm run check:midlets
 
       # ─────────────────────────── 内核 ───────────────────────────
       - name: 安装构建依赖

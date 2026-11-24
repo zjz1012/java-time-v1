@@ -24,6 +24,9 @@ jobs:
       # 内置游戏的清单是生成物：这里核对「catalog ↔ public/games ↔ 真实字节」
       # 三者一致（逐款重算 sha256）。改了清单没重跑生成脚本会在这里红。
       - run: npm run check:games
+      # 六款自研游戏的源码与产物必须对得上（类名、MIDlet-1、主类条目、catalog）。
+      # 不需要 JDK：完整的「重编译后逐字节比对」见 npm run verify:midlets。
+      - run: npm run check:midlets
 
       # 内核产物不入库，CI 里不构建；脚本在产物缺失时直接跳过。
       # 真正需要校验产物时，在发布流程里构建后再跑。
@@ -33,9 +36,10 @@ jobs:
 
   # 真内核冒烟：把 JAR 喂进 PluotSorbet，验证启动 / 输入 / 退出 / 再次启动。
   #
-  # ★ 名字里写清「仅加载校验」是刻意的：内核产物与测试 JAR 都按设计不入库
-  #   （GPL-2.0 衍生作品，按发布策略单独处理），所以常态 CI 里这个 job
-  #   **不执行任何内核测试**，只确认用例能被加载（语法、导入路径、配置）。
+  # ★ 名字里写清「仅加载校验」是刻意的：内核产物按设计不入库（GPL-2.0 衍生
+  #   作品，按发布策略单独处理），所以常态 CI 里这个 job **不执行任何内核
+  #   测试**，只确认用例能被加载（语法、导入路径、配置）。
+  #   测试游戏用的是随包分发的 public/games/sokoban.data（入库），不需要 secret。
   #   它变绿不代表真内核 E2E 通过 —— 那件事归 .github/workflows/release.yml。
   kernel-smoke:
     name: kernel-smoke（仅加载校验，不执行内核）
@@ -53,11 +57,11 @@ jobs:
       - name: 检测内核产物
         id: prereq
         run: |
-          if [ -f public/kernel/main-all.js ] && [ -f public/assets/sokoban.jar ]; then
+          if [ -f public/kernel/main-all.js ] && [ -f public/games/sokoban.data ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=真内核冒烟未执行::本 job 只做加载校验。内核与测试 JAR 不在仓库里；发布验收请在 release.yml 里跑（推 v* 标签或手动触发）。"
+            echo "::notice title=真内核冒烟未执行::本 job 只做加载校验。内核产物不在仓库里；发布验收请在 release.yml 里跑（推 v* 标签或手动触发）。"
           fi
 
       # 即使没有产物也要确认用例能被加载：语法错误、导入路径写错、

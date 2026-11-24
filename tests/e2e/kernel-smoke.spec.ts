@@ -3,6 +3,8 @@ import { join } from 'node:path'
 
 import { expect, test, type Page } from '@playwright/test'
 
+import { PLAYER_URL, TEST_GAME, TEST_GAME_PATH, TEST_GAME_MISSING } from './game'
+
 /**
  * 真内核冒烟测试：把 JAR 真的喂进 PluotSorbet，走完
  * 「启动 → 方向输入 → 退出 → 再次启动」四条路径。
@@ -12,24 +14,24 @@ import { expect, test, type Page } from '@playwright/test'
  * 本仓库已经在这两处栽过 —— 一次是 `style/emoji/` 缺失导致启动成功但纯黑，
  * 一次是物理键的 `which` 落不进内核的设备键码表。这两类问题只有真跑才看得见。
  *
- * 前置：`public/kernel/`（npm run 构建脚本）与 `public/assets/sokoban.jar`。
- * 两者都不入库，缺失时整组跳过并打印原因。
+ * 前置：`public/kernel/`（npm run 构建脚本）。内核产物不入库，缺失时整组跳过
+ * 并打印原因；测试游戏用的是随包分发的自研推箱子，见 `game.ts`。
  */
 
 const ROOT = process.cwd()
 const KERNEL_ENTRY = join(ROOT, 'public/kernel/main-all.js')
 const EMULATOR_JS = join(ROOT, 'public/kernel/j2me.js')
-const TEST_JAR = join(ROOT, 'public/assets/sokoban.jar')
 
 const REQUIRED: ReadonlyArray<readonly [path: string, label: string]> = [
   [KERNEL_ENTRY, 'public/kernel/main-all.js'],
   [EMULATOR_JS, 'public/kernel/j2me.js'],
-  [TEST_JAR, 'public/assets/sokoban.jar'],
 ]
 
 const missing = REQUIRED.filter(([file]) => !existsSync(file)).map(([, label]) => label)
-
-const PLAYER_URL = '/?jar=/assets/sokoban.jar&name=推箱子'
+if (TEST_GAME_MISSING) {
+  // 测试游戏是入库文件，缺了不是「还没构建」，是仓库被动过 —— 直接失败。
+  throw new Error(`缺少测试游戏：${TEST_GAME_PATH}`)
+}
 
 /** 打开运行页并等到内核交出首帧。 */
 async function openPlayer(page: Page): Promise<void> {
@@ -155,7 +157,7 @@ test.describe('真实内核冒烟', () => {
 
     // 把 JAR 拖慢 3 秒，把「启动中」这个窗口撑开。
     // 本机内核 1 秒就能出画，不拖慢的话根本采不到这个状态。
-    await page.route('**/assets/sokoban.jar', async (route) => {
+    await page.route(`**${TEST_GAME.url}`, async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 3000))
       try {
         await route.continue()

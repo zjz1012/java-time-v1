@@ -134,28 +134,103 @@ describe('「没跑」不能显示成「跑过了」', () => {
     expect(release).toContain('verify-e2e-report.mjs')
     // 报告校验必须是「无论前面成败都跑」，否则前一步失败时它会被跳过。
     expect(release).toMatch(/校验 E2E 报告[\s\S]{0,200}if: always\(\)/)
-    // 缺产物要显式失败，而不是「跳过然后绿」。
+    // 缺产物要显式失败，而不是「跳过然后绿」。判据在脚本里，不在 YAML 里：
+    // 工作流只负责把 REQUIRE_KERNEL=1 传下去，真正 exit 的是校验脚本。
     expect(release).toContain('REQUIRE_KERNEL')
-    expect(release).toContain('exit 1')
+    const check = readFileSync(join(ROOT, 'scripts/check-kernel-artifacts.mjs'), 'utf8')
+    expect(check).toContain('REQUIRE_KERNEL')
+    expect(check).toContain('process.exit(1)')
   })
 
-  it('缺测试包要在构建内核之前就失败', () => {
-    // 缺 JAR 是发布验收最常见的失败（首次跑、换 runner、secret 没配），
+  it('测试游戏必须在构建内核之前就核对过', () => {
+    // 缺资产是发布验收最常见的失败（首次跑、换 runner、仓库不完整），
     // 而构建内核要 20 分钟。把检查排在构建之后，等于让人等 20 分钟才知道
     // 「少了东西」—— 这种失败顺序本身就在劝人别跑发布验收。
     const release = readFileSync(RELEASE, 'utf8')
     // 用步骤名精确匹配：文件头的注释里也写着「构建内核」。
-    const jar = release.indexOf('- name: 准备测试程序包')
+    const games = release.indexOf('- name: 校验随包游戏资产')
     const build = release.indexOf('- name: 构建内核')
-    expect(jar, '找不到「准备测试程序包」步骤').toBeGreaterThan(-1)
+    expect(games, '找不到「校验随包游戏资产」步骤').toBeGreaterThan(-1)
     expect(build, '找不到「构建内核」步骤').toBeGreaterThan(-1)
-    expect(jar).toBeLessThan(build)
+    expect(games).toBeLessThan(build)
   })
 
   it('常态 CI 的 job 名写明「只做加载校验」，不冒充内核验收', () => {
     const ci = readFileSync(CI, 'utf8')
     expect(ci).toContain('仅加载校验')
     expect(ci).toContain('release.yml')
+  })
+})
+
+/**
+ * e2e 依赖的文件必须真的在仓库里。
+ *
+ * 这一组来自一个真实缺陷：用例要 `public/assets/sokoban.jar`，而
+ * `.gitignore` 里有 `public/assets/*.jar` —— 本地那份是手工放的，所以
+ * 本机永远绿；CI 上要靠一条「从 secret 还原测试包」的步骤补，还原出来的
+ * 名字是 `e2e-test.jar`，与用例要的 `sokoban.jar` 又不一致。于是
+ * **配了 secret 也照样找不到文件**，而失败信息只报「缺文件」。
+ *
+ * 只靠「路径写对了」不够，要能从仓库内容判断，所以这里直接问 git：
+ * 用例里出现的每个 `public/...` 路径，要么被跟踪，要么落在文档化的
+ * 构建产物目录（`public/kernel/`，GPL 产物不入库）里。
+ */
+describe('e2e 只依赖入库的文件', () => {
+  const E2E_DIR = join(ROOT, 'tests/e2e')
+  const FILES = ['game.ts', 'kernel-smoke.spec.ts', 'saves.spec.ts', 'library.spec.ts']
+
+  /** 去掉注释再扫：注释里提到旧路径是合理的，那是在解释为什么不能那么写。 */
+  function codeOf(file: string): string {
+    return readFileSync(join(E2E_DIR, file), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '')
+  }
+
+  function isTracked(path: string): boolean {
+    const result = spawnSync('git', ['ls-files', '--error-unmatch', path], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    })
+    return result.status === 0
+  }
+
+  it('用例引用的每个 public/ 路径要么入库、要么是构建产物', () => {
+    const seen = new Set<string>()
+    for (const file of FILES) {
+      for (const match of codeOf(file).matchAll(/public\/[\w./-]+/g)) {
+        seen.add(match[0].replace(/[./]+$/, ''))
+      }
+    }
+    expect(seen.size, '一个 public/ 路径都没扫到，正则失效了？').toBeGreaterThan(0)
+
+    const offenders = [...seen].filter((path) => {
+      if (path.startsWith('public/kernel/')) return false // 内核产物，按设计不入库
+      return !isTracked(path)
+    })
+    expect(
+      offenders,
+      `这些路径 e2e 要用，但没进仓库 —— 本地能过、CI 必挂：\n${offenders.join('\n')}`,
+    ).toEqual([])
+  })
+
+  it('不再要求「测试专用程序包」，也不再找 secret', () => {
+    const release = readFileSync(RELEASE, 'utf8')
+    const code = release.replace(/#[^\n]*/g, '')
+    // 曾经的两条退路：secret 还原、通配已有 jar。两条都还原不出用例要的文件名。
+    expect(code).not.toContain('E2E_TEST_JAR_B64')
+    expect(code).not.toContain('准备测试程序包')
+    expect(code).not.toContain('public/assets')
+  })
+
+  it('测试游戏用的是随包分发的那一款，两个 spec 共用一个常量', () => {
+    const game = codeOf('game.ts')
+    expect(game).toContain("'public/games/sokoban.data'")
+    // 两个 spec 各写一遍路径正是这次缺陷的成因。
+    for (const file of ['kernel-smoke.spec.ts', 'saves.spec.ts']) {
+      const code = codeOf(file)
+      expect(code, `${file} 应该 import ./game`).toContain("from './game'")
+      expect(code, `${file} 不该自己写死游戏路径`).not.toContain('public/games')
+    }
   })
 })
 
