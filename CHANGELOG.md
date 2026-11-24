@@ -5,7 +5,47 @@
 
 ## [未发布]
 
+### 修复
+
+- **存档指纹不再有常量退路**（P0）。`sha256Hex` 在 `crypto.subtle` 缺失时曾返回
+  固定串 `sha256:unavailable`，注释还写着「退化后仍能隔离」。这是错的：所有游戏
+  拿到同一个指纹就等于共享同一个存档键，装第二个游戏会覆盖第一个的存档。
+  现在：安全上下文用 WebCrypto，否则用 `src/shared/sha256.ts` 的纯 TS 实现
+  （与 Node 的 SHA-256 逐字节对拍），**两者都不可用时抛 `HashUnavailableError` 并
+  拒绝启动**。`isFingerprint()` 也把占位串挡在导入之外，存档服务的四个入口
+  （`restore` / `archive` / `exportZip` / `applyImport`）各自再查一次 —— 非法键
+  写进去不是「这次没存上」而是「串档」，两者的后果不对称。
+- **启动前恢复失败会中止启动**（P0）。原先 `restoreIntoIdb()` 的失败结果被
+  `console.warn` 后继续装载内核，后果链是「游戏在空档/残留档上跑 → 退出时把错数据
+  写回归档 → 原存档没了」。现在只有「库不存在且快照为空」可以继续，其余一律
+  `SAVE_RESTORE_FAILED` 并带出原因（库被占用 / 版本不符 / 不支持 IDB）。宿主侧
+  还额外校验快照（越界路径、重复、32 个文件 / 4 MiB / 8 MiB）。
+- **运行中导入不再被退出快照覆盖**（P0）。原先运行中导入是「直接写归档」，内核里
+  仍是旧档，随后的静默期/退出快照会把导入结果盖回去 —— 界面提示成功，退出后进度
+  回到导入前。现在固定为 `停 → 等归档清空 → 写导入 → 重启`，并在写入期间挂起
+  旧实例的迟到快照。运行中会先弹确认，并提供「先导出当前存档」。
+- **ZIP 导入加上界**（P1）：包体 12 MiB、32 个文件、单文件 4 MiB、总量 8 MiB、
+  路径 ≤128 字符；拒绝重复条目、`..`、反斜杠、控制字符、非 UTF-8、目录条目；
+  manifest 逐字段查类型并拒绝未知字段。导出侧用同一套上限。
+
 ### 新增
+
+- **发布验收工作流** `.github/workflows/release.yml`：推 `v*` 标签或手动触发时
+  构建内核（emsdk 2.0.34 + JDK）→ 真浏览器跑全量 e2e → `scripts/verify-e2e-report.mjs`
+  校验报告。**0 通过、有跳过、有 flaky 都判失败** —— 因为 `playwright test` 对
+  「全部 skip」的退出码是 0，「没跑」和「跑过了」不能都是绿色。
+  `check-kernel-artifacts.mjs` 新增 `REQUIRE_KERNEL=1`：缺产物直接失败，不再跳过。
+- `tests/unit/host-restore.test.ts`：把 `host.html` 的脚本放进 `vm` 跑，证明
+  「恢复失败 → `SAVE_RESTORE_FAILED` → 一个内核脚本都不加载」。
+- `tests/unit/saves-import.test.ts`：导入时序（`stop → apply → relaunch`）与
+  状态判定（同游戏 + 运行中才重启）。
+- `tests/unit/hash.test.ts`：FIPS 向量、跨块边界、与 Node 差分、无 `subtle` 时
+  结果不变、`subtle` 抛错时降级。
+- `tests/unit/saves-archive.test.ts` 新增「指纹门禁」一组：占位串 / 空串 / 无前缀 /
+  大写十六进制 / 非法长度在读、写、导出、导入四个入口都被拒，且**归档被拒时
+  不会覆盖别的游戏** —— 这与「串档之后界面一切正常」正好相反，所以要单独钉住。- 单元测试总数 110 → 177；其中 `saves-format` 11 → 30（构造包全覆盖）、
+  `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 11，
+  新增 `hash` 13 / `host-restore` 9 / `saves-import` 11。真内核 e2e 仍为 9 项（29 秒）。
 
 - **存档（F13 / F14 / F15）：外壳托管，内核文件系统只作运行期缓存**。见
   `docs/decisions/0005-saves.md`。
