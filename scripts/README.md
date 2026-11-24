@@ -18,6 +18,7 @@
 | `import-games.mjs` | 从上游游戏清单生成 `src/library/catalog.ts`，逐款重算指纹、复制资产 |
 | `check-provenance.mjs` | 来源登记自检：依赖是否登记、许可原文是否被改、`games.json` 是否与真实字节一致 |
 | `verify-e2e-report.mjs` | 判读 Playwright 的 JSON 报告：0 通过 / 有跳过 / 有 flaky 一律失败 |
+| `check-licenses.mjs` | 随包分发的许可原文（`public/licenses/`）与仓库正本逐字节比对；`--write` 同步 |
 | `files/StringBuilder.java` | 上游缺失的类，由 `fixup-upstream.py` 注入 |
 
 ## 前置工具

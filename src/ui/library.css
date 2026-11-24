@@ -400,6 +400,23 @@
   margin: 0;
 }
 
+/*
+ * 「关于与许可」是页脚里唯一的链接，也是 GPL 要求的那个入口 ——
+ * 别把它做成 11px 灰字里的一个下划线，那样等于没有。
+ */
+.library__foot-link {
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--text-dim) 45%, transparent);
+}
+
+.library__foot-link:hover,
+.library__foot-link:focus-visible {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+}
+
 /* ------------------------------------------------------- 独立提示页（notice） */
 
 .notice {

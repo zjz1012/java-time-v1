@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 import {
+  ABOUT_HASH,
   BUILTIN_GAMES,
   CATEGORIES,
   IMPORTED_CATEGORY,
@@ -232,8 +233,10 @@ export function LibraryScreen() {
 
       <footer className="library__foot">
         <p>
-          内置 {BUILTIN_GAMES.length} 款；来源与许可见 docs/provenance/GAMES.md。内核
-          GPL-2.0，自有部分 GPL-2.0-or-later。
+          内置 {BUILTIN_GAMES.length} 款 · 内核 GPL-2.0 · 自有部分 GPL-2.0-or-later ·{' '}
+          <a className="library__foot-link" href={ABOUT_HASH}>
+            关于与许可
+          </a>
         </p>
       </footer>
     </main>

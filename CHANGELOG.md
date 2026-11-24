@@ -7,6 +7,20 @@
 
 ### 修复
 
+- **内核构建被仓库根的 `@types` 污染**（P0）。发布验收第一次真跑到「构建内核」，
+  然后 tsc 报了 3216 处语法错误 —— 错的全是 `node_modules` 里的 `.d.ts`
+  （`undici-types`、`@types/chai`、`@types/react`），没有一处是上游代码。
+  原因不是上游：tsc 在不给 `--types` 时会把「被编译文件往上每一层
+  `node_modules/@types`」整段自动引入，而上游放在 `vendor/pluotsorbet`，
+  往上第二层就是仓库根，于是这个 2018 年的编译单元读进了 2024 年的类型声明。
+  现在给 `--typeRoots` 指一个空目录，把环境类型整段关掉（上游 `references.ts`
+  只用 `/// <reference path=...>`，不依赖任何 `@types` 包）。
+  不选「升级 `@types` / 加 `--skipLibCheck`」：前者治不住（下一个带 `@types`
+  的包还会犯），后者只跳过类型检查、语法错照样报。验证不靠「本地跑通」——
+  把上游按钉定 commit 浅拉到同样层级下跑同一条命令：修前 3216 处（其中 3159 处
+  来自 `@types`），修后 0 处。顺带把失败信息从「只有条数」改成「前 8 条 + 日志
+  路径」，并新增 5 项守卫（flag 在、位置在 `references.ts` 之前、没退回
+  `--skipLibCheck`、脚本 `bash -n` 通过）。
 - **发布门禁不再等一个不存在的测试包**（P0）。`release.yml` 曾经从 secret 还原
   `public/assets/e2e-test.jar`，而 e2e 要的是 `public/assets/sokoban.jar` ——
   两个名字都对不上仓库：前者的路径被 `.gitignore` 忽略，后者从来没存在过。
@@ -107,16 +121,35 @@
   是两件事：前者证明「没被换过」，后者证明「有权分发」，缺哪个都不算完整。
   一个副产物：pisces312 那 7 款不能记成「重打包上游 jar」—— 上游 `dist/*.jar`
   是混淆产物（`a.class`、`b.class`），本项目用的是 `src/` 的原名类。
-- 单元测试总数 110 → 289；其中 `saves-format` 11 → 30（构造包全覆盖）、
+- **关于页与许可原文随包分发**（F19 / F3 / F22）。分发物里带着别人的 GPL 代码与
+  别人授权的游戏，二者都要求「分发时附上许可原文、说明来源」。源码在仓库里、
+  许可见 `LICENSE`，但产品里没有入口，用户拿到的就是一个说不清自己是什么的网页。
+  - 新增 `#/about` 路由与 `AboutScreen`：许可分层逐项列清（自有代码
+    GPL-2.0-or-later / 内核四件产物 GPL-2.0 **非** or-later / 自研 6 款 /
+    MIT 98 款 / 界面依赖），给出上游 commit 与完整构建方法的位置，以及源码地址。
+  - 版本、内核 commit、随包款数**全部构建期注入**：`vite.config.ts` 从
+    `package.json`、`fetch-upstream.sh` 的 `PIN`、`games.json` 读，读不到直接让
+    构建失败。手抄的版本号写错比不写更糟，而关于页正是用户拿来核对分发内容的那页。
+  - `public/licenses/` 放三份原文（GPL 全文、MIT 全文与三份版权行、第三方声明），
+    Vite 原样搬进 `dist`。`scripts/check-licenses.mjs` 与正本逐字节比对，不一致时
+    指出「从第几个字节起不同」并给出 `--write`；这类漂移是静默的 —— 改了正本忘了
+    同步副本，构建照常成功，只有用户点开的是旧许可。
+  - 库页页脚改成「关于与许可」入口（原来那句指的是 `docs/provenance/GAMES.md`，
+    仓库里只有 `games.json`，打包后路径也不可达）。
+  - 测试：`about-page` 6 项（原文都在、逐字节一致、数字来自注入而非手抄）、
+    路由 +1、e2e 2 项（页脚 → 关于页 → 三份原文真的返回 200 且正文命中 → 回库页；
+    直接开 `#/about` 不白屏）。
+- 单元测试总数 110 → 302；其中 `saves-format` 11 → 30（构造包全覆盖）、
   `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 15（新增「e2e 只依赖
   入库的文件」三条），新增 `hash` 13 / `host-restore` 9 / `saves-import` 11 /
   `saves-failure` 11（配额五种错误形态、空快照不报错、紧急导出不读仓储）/
   `player-save-failure` 7（先问再停的顺序、四个出口、提示条不进 flex 流）/
   `library-catalog` 8 / `library-routes` 11 / `library-filter` 16 /
   `library-store` 11 / `library-import` 20 / `library-jar` 24
-  （取代 `library-manifest` 15，含「随包 104 款全部通过预检」）。
-  真内核 e2e 9 → 16 项，新增 `library.spec.ts` 5 项与 `save-failure.spec.ts` 2 项
-  （配额报错全流程、重试成功后字节真的进 IndexedDB）。
+  （取代 `library-manifest` 15，含「随包 104 款全部通过预检」）/
+  `kernel-build-script` 5（内核 tsc 的 `--typeRoots` 守卫）/ `about-page` 6。
+  真内核 e2e 9 → 18 项，新增 `library.spec.ts` 5 项、`save-failure.spec.ts` 2 项
+  （配额报错全流程、重试成功后字节真的进 IndexedDB）、`about.spec.ts` 2 项。
 
 - **存档（F13 / F14 / F15）：外壳托管，内核文件系统只作运行期缓存**。见
   `docs/decisions/0005-saves.md`。

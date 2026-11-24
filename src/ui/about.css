@@ -1,0 +1,153 @@
+/*
+ * 关于页。
+ *
+ * 这一页是纯阅读页面：没有交互、没有异步、不需要「加载中」。所以它刻意比库页
+ * 更窄、行距更松 —— 用户来这里是核对许可与来源的，不是来玩的。
+ * 宽度用 max-width 而不是百分比：正文行长超过 40 个汉字就很难读。
+ */
+
+.about {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 18px 48px;
+}
+
+.about__head {
+  margin-bottom: 22px;
+}
+
+.about__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.about__sub {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.about__section {
+  margin-bottom: 26px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.about__section:last-of-type {
+  border-bottom: none;
+}
+
+.about__h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.about__p {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: var(--text);
+}
+
+.about__p:last-child {
+  margin-bottom: 0;
+}
+
+/* 许可分层：定义列表比表格更窄、也不需要横向滚动 */
+.about__licenses {
+  margin: 0;
+}
+
+.about__license {
+  padding: 9px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.about__license:first-child {
+  border-top: none;
+}
+
+.about__license dt {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.about__license dd {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text-dim);
+}
+
+.about__hint {
+  display: block;
+  color: var(--text-dim);
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.about__files {
+  margin: 8px 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.about__files li {
+  padding: 8px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.about__files li:first-child {
+  border-top: none;
+}
+
+.about__link {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.about__link:hover {
+  border-bottom-color: var(--accent);
+}
+
+/*
+ * 触控目标高度：许可原文是这一页唯一的「有效动作」，
+ * 按 WCAG 2.2 的最小值给足 44px 行高，别让人点三次点不中。
+ */
+.about__files .about__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.about__mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.94em;
+  word-break: break-all;
+}
+
+.about__note {
+  margin: 10px 0 0;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+
+.about__foot {
+  padding-top: 6px;
+  font-size: 13px;
+}
+
+/* 页脚链接既是动作也是触控目标 */
+.about__foot .about__link {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  font-weight: 600;
+}

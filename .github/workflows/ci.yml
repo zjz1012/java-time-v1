@@ -27,6 +27,9 @@ jobs:
       # 六款自研游戏的源码与产物必须对得上（类名、MIDlet-1、主类条目、catalog）。
       # 不需要 JDK：完整的「重编译后逐字节比对」见 npm run verify:midlets。
       - run: npm run check:midlets
+      # 随包分发的许可原文（public/licenses/）必须与仓库正本逐字节一致：
+      # 改了 LICENSE 忘了同步副本，构建照样成功，用户点开的却是旧许可。
+      - run: npm run check:licenses
 
       # 内核产物不入库，CI 里不构建；脚本在产物缺失时直接跳过。
       # 真正需要校验产物时，在发布流程里构建后再跑。

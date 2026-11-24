@@ -31,7 +31,7 @@ export {
   type ImportErrorCode,
   type ParsedImport,
 } from './import'
-export { LIBRARY_HASH, currentRoute, parseRoute, playHash, type Route } from './routes'
+export { ABOUT_HASH, LIBRARY_HASH, currentRoute, parseRoute, playHash, type Route } from './routes'
 export {
   createIdbLibraryRepository,
   createMemoryLibraryRepository,

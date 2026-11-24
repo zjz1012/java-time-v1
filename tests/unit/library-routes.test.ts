@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { LIBRARY_HASH, parseRoute, playHash } from '@/library/routes'
+import { ABOUT_HASH, LIBRARY_HASH, parseRoute, playHash } from '@/library/routes'
 
 describe('hash 路由', () => {
   it('空 hash 与 #/ 都是库页', () => {
@@ -27,10 +27,20 @@ describe('hash 路由', () => {
     ['未知前缀', '#/play'],
     ['只有前缀', '#/play/'],
     ['多余层级', '#/play/snake/extra'],
-    ['不是 play', '#/about'],
+    ['不认识的页面', '#/help'],
+    ['关于页多一层', '#/about/extra'],
     ['裸 id', '#/snake'],
   ])('%s 一律回库页', (_label, hash) => {
     expect(parseRoute(hash)).toEqual({ name: 'library' })
+  })
+
+  it('关于页有独立路由', () => {
+    // 许可原文与源码获取方式必须能直接给一个地址 —— 藏在页脚文字里等于没有。
+    expect(parseRoute(ABOUT_HASH)).toEqual({ name: 'about' })
+    expect(parseRoute('#/about')).toEqual({ name: 'about' })
+    // 尾斜杠与查询串不该把它变成 404
+    expect(parseRoute('#/about/')).toEqual({ name: 'about' })
+    expect(parseRoute('#/about?from=lib')).toEqual({ name: 'about' })
   })
 
   it('半个百分号编码不会抛错，而是回库页', () => {

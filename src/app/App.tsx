@@ -3,14 +3,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { LIBRARY_HASH, currentRoute, resolveLaunch, type GameLaunch, type Route } from '@/library'
 import { libraryRepository } from '@/library/instance'
 
+import { AboutScreen } from './AboutScreen'
 import { LibraryScreen } from './LibraryScreen'
 import { PlayerScreen } from './PlayerScreen'
 
 /**
  * 装配层：把地址映射到页面。
  *
- * 两条入口：
+ * 三条入口：
  *   `#/`、`#/play/<id>`   正常产品入口（库页与运行页）
+ *   `#/about`              关于页（许可原文与源码获取方式）
  *   `?jar=<url>`           开发/验证通道，直接跑一个程序包
  *
  * `?jar=` 保留是因为它让「内核能不能跑」这件事可以脱离游戏库复现 ——
@@ -23,6 +25,7 @@ export function App() {
 
   if (dev) return <PlayerScreen launch={dev} />
   if (route.name === 'play') return <GameRoute gameId={route.gameId} />
+  if (route.name === 'about') return <AboutScreen />
   return <LibraryScreen />
 }
 

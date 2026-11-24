@@ -70,6 +70,11 @@ jobs:
       - name: 校验自研源码与产物
         run: npm run check:midlets
 
+      # 发布物里带着 GPL 与 MIT 的许可原文（public/licenses/）。它是「分发时
+      # 附上许可」这件事的物证，与仓库正本不一致就等于发出去一份过期许可。
+      - name: 校验随包许可原文
+        run: npm run check:licenses
+
       # ─────────────────────────── 内核 ───────────────────────────
       - name: 安装构建依赖
         if: github.event_name != 'workflow_dispatch' || inputs.kernel == 'build'

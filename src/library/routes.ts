@@ -7,6 +7,7 @@
  *
  *   #/                 库页
  *   #/play/<gameId>    运行页
+ *   #/about            关于页（版本 / 来源 / 许可原文 / 源码获取方式）
  *
  * 解析与生成成对写在同一个文件里，是为了让「拼出来的串一定解析得回去」
  * 这件事能被测试直接验证，而不是靠两处手写格式碰巧一致。
@@ -15,6 +16,7 @@
 export type Route =
   | { readonly name: 'library' }
   | { readonly name: 'play'; readonly gameId: string }
+  | { readonly name: 'about' }
 
 /**
  * 库内 id 的字符集。
@@ -26,6 +28,9 @@ export type Route =
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,80}$/
 
 export const LIBRARY_HASH = '#/'
+
+/** 关于页。GPL 要求分发时给出许可原文与源码获取方式，入口不能只藏在页脚一行字里。 */
+export const ABOUT_HASH = '#/about'
 
 export function playHash(gameId: string): string {
   return `#/play/${encodeURIComponent(gameId)}`
@@ -39,6 +44,7 @@ export function parseRoute(hash: string): Route {
   const raw = hash.startsWith('#') ? hash.slice(1) : hash
   const path = raw.split('?')[0] ?? ''
   const segments = path.split('/').filter((segment) => segment !== '')
+  if (segments.length === 1 && segments[0] === 'about') return { name: 'about' }
   if (segments.length !== 2) return { name: 'library' }
   const [head, tail] = segments
   if (head !== 'play' || !tail) return { name: 'library' }

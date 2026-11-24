@@ -23,7 +23,8 @@
     "verify:e2e-report": "node scripts/verify-e2e-report.mjs",
     "build:midlets": "node scripts/build-midlets.mjs --install",
     "check:midlets": "node scripts/build-midlets.mjs --structural",
-    "verify:midlets": "node scripts/build-midlets.mjs"
+    "verify:midlets": "node scripts/build-midlets.mjs",
+    "check:licenses": "node scripts/check-licenses.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",
