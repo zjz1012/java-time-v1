@@ -122,16 +122,34 @@ echo "== 4/7 JVM 主脚本（tsc ${TS_VER}）"
 #   jit/analyze.ts   TS2365  const enum 收窄后比较 None
 #   vm/parser.ts     TS2540  给只读字段 superClassName 赋值
 # tsc 默认 noEmitOnError=false，产物照常完整输出；只有出现**其他**错误才算失败。
+#
+# `--typeRoots` 必须显式指到一个空目录。不给 `--types` 时，tsc 会把「被编译文件
+# 所在目录往上每一层的 node_modules/@types」全部自动引入 —— 上游在
+# vendor/pluotsorbet，往上第二层就是本仓库根目录，于是这个 2018 年的编译单元
+# 读进了本项目的 @types/node@24。它引的 undici-types 用的是 TS 4.x 才有的语法，
+# TS 2.9 直接报 3216 处语法错误（TS1005 / TS1128），构建红。
+# 这与上游代码无关，是「环境里的 @types 渗进了别人的编译单元」，只能在编译期
+# 掐掉。上游 references.ts 只用 `/// <reference path=...>`、不引用任何 @types 包，
+# 所以关掉是安全的。同理，今后往 devDependencies 里加带 @types 的包都不会再
+# 影响这一步 —— 这正是它值得写成一条固定约束、而不是「升级一下 @types」的原因。
+TSC_TYPES="$(mktemp -d)"
 set +e
 npx -y -p typescript@$TS_VER tsc --preserveConstEnums --target ES5 \
+  --typeRoots "$TSC_TYPES" \
   references.ts --out bld/j2me.js 2>&1 | tee /tmp/kernel-tsc.log
 TSC_RC=${PIPESTATUS[0]}
 set -e
+rmdir "$TSC_TYPES" 2>/dev/null || true
 if [ "$TSC_RC" -ne 0 ]; then
-  OTHERS=$(grep "error TS" /tmp/kernel-tsc.log \
-    | grep -vcE "jit/analyze\.ts.*TS2365|vm/parser\.ts.*TS2540" || true)
+  OTHERS_LOG=/tmp/kernel-tsc-others.log
+  grep "error TS" /tmp/kernel-tsc.log \
+    | grep -vE "jit/analyze\.ts.*TS2365|vm/parser\.ts.*TS2540" >"$OTHERS_LOG" || true
+  OTHERS=$(wc -l <"$OTHERS_LOG" | tr -d ' ')
   if [ "${OTHERS:-0}" -ne 0 ]; then
-    echo "!! tsc 失败（有 $OTHERS 处非已知错误）"
+    # 只打条数等于让人去翻几千行日志。前 8 条足够定位是哪个文件、哪类错误。
+    echo "!! tsc 失败（有 $OTHERS 处非已知错误），前 8 条：" >&2
+    head -8 "$OTHERS_LOG" >&2
+    echo "   完整日志：/tmp/kernel-tsc.log" >&2
     exit 1
   fi
   echo "  （2 处已知类型告警，产物已完整输出，继续）"
