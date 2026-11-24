@@ -1,103 +1,126 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { MockRuntime, type RuntimeState } from '@/runtime'
+import { LIBRARY_HASH, currentRoute, resolveLaunch, type GameLaunch, type Route } from '@/library'
+import { libraryRepository } from '@/library/instance'
+
+import { LibraryScreen } from './LibraryScreen'
 import { PlayerScreen } from './PlayerScreen'
 
-type Phase = 'stage0' | 'stage1' | 'stage2plus'
+/**
+ * 装配层：把地址映射到页面。
+ *
+ * 两条入口：
+ *   `#/`、`#/play/<id>`   正常产品入口（库页与运行页）
+ *   `?jar=<url>`           开发/验证通道，直接跑一个程序包
+ *
+ * `?jar=` 保留是因为它让「内核能不能跑」这件事可以脱离游戏库复现 ——
+ * e2e 与排查内核问题时都用它。它不写游玩记录：那不是库里的游戏，
+ * 留一条记录只会在「最近玩过」里多一个点不开的卡片。
+ */
+export function App() {
+  const route = useHashRoute()
+  const dev = useDevLaunch()
 
-interface ModuleStatus {
-  readonly name: string
-  readonly detail: string
-  readonly phase: Phase
-}
-
-/** 阶段状态。数据来自 docs/SOURCE_AUDIT.md 与 docs/provenance/CORE_EVALUATION.md。 */
-const MODULES: readonly ModuleStatus[] = [
-  { name: '内核来源', detail: 'PluotSorbet @ 46ee3e7（GPL-2.0）+ 本地补丁，源码可重建', phase: 'stage0' },
-  { name: '旧版隔离', detail: '第三方网络层与 45 条内置游戏均不迁入', phase: 'stage0' },
-  { name: '运行时适配', detail: '契约与 Mock 实现，12 项契约测试覆盖成功/失败/超时', phase: 'stage0' },
-  { name: '内核接入', detail: '宿主页装配 + 适配器，自编 MIDlet 已跑通启动与出画', phase: 'stage1' },
-  { name: '输入系统', detail: '键位映射与虚拟键区；多点同按、失焦抬键已覆盖', phase: 'stage1' },
-  { name: '存档系统', detail: '未开始', phase: 'stage2plus' },
-  { name: '产品界面', detail: '未开始', phase: 'stage2plus' },
-]
-
-const PHASE_LABEL: Record<Phase, string> = {
-  stage0: '已完成',
-  stage1: '进行中',
-  stage2plus: '未开始',
+  if (dev) return <PlayerScreen launch={dev} />
+  if (route.name === 'play') return <GameRoute gameId={route.gameId} />
+  return <LibraryScreen />
 }
 
 /**
- * 阶段 1 没有游戏库，运行页由一个显式参数唤起：
+ * 订阅 hash 变化。
  *
- *   /?jar=/assets/sokoban.jar&name=推箱子
- *
- * 这样做的目的是**让「内核能跑」这件事可以复现**，而不是先做一层列表再回头补运行页。
- * 参数只在开发与验证时使用，阶段 2 由游戏库替代；它不改变任何默认行为
- * （不带参数时显示的就是状态页）。
+ * 不用路由库：这个站只有两个页面，一条 `hashchange` 监听就够了，
+ * 引入一个几十 KB 的依赖只为解析 `#/play/x` 并不划算。
  */
-export function App() {
-  const params = new URLSearchParams(location.search)
-  const jarUrl = params.get('jar')
-
-  if (jarUrl) {
-    return <PlayerScreen jarUrl={jarUrl} displayName={params.get('name') ?? '未命名程序'} />
-  }
-  return <StatusScreen />
-}
-
-function StatusScreen() {
-  const [state, setState] = useState<RuntimeState>('idle')
+function useHashRoute(): Route {
+  const [route, setRoute] = useState<Route>(() => currentRoute())
 
   useEffect(() => {
-    const runtime = new MockRuntime()
-    const off = runtime.on('statechange', (e) => setState(e.current))
-    void runtime.load({
-      fingerprint: 'demo',
-      displayName: 'demo',
-      bytes: new Uint8Array([0]),
-    })
-    return () => {
-      off()
-      void runtime.dispose()
-    }
+    const onChange = () => setRoute(currentRoute())
+    // 首次挂载也同步一次：用户直接带 hash 打开页面时，初值可能还没算进去。
+    onChange()
+    window.addEventListener('hashchange', onChange)
+    return () => window.removeEventListener('hashchange', onChange)
   }, [])
 
+  return route
+}
+
+function useDevLaunch(): GameLaunch | null {
+  return useMemo(() => {
+    const params = new URLSearchParams(window.location.search)
+    const jar = params.get('jar')
+    if (!jar) return null
+    return {
+      id: `dev:${jar}`,
+      title: params.get('name') ?? '未命名程序',
+      // 开发通道没有登记过指纹，等读到字节才知道；运行页会跳过比对。
+      expectedFingerprint: undefined,
+      trackPlay: false,
+      load: async () => {
+        const response = await fetch(jar)
+        if (!response.ok) {
+          throw new Error(`程序包请求失败（HTTP ${response.status}）`)
+        }
+        return new Uint8Array(await response.arrayBuffer())
+      },
+    }
+  }, [])
+}
+
+/**
+ * 按 id 取游戏再进运行页。
+ *
+ * 中间这一层是必要的：导入的游戏要先从 IndexedDB 把字节取出来，而
+ * `PlayerScreen` 是个同步渲染的组件，不能在里面 await。
+ */
+function GameRoute({ gameId }: { readonly gameId: string }) {
+  const [launch, setLaunch] = useState<GameLaunch | null>(null)
+  const [missing, setMissing] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setLaunch(null)
+    setMissing(false)
+
+    void resolveLaunch(gameId, libraryRepository)
+      .then((result) => {
+        if (cancelled) return
+        if (result) setLaunch(result)
+        else setMissing(true)
+      })
+      .catch(() => {
+        // 读不到就当作「不在库里」：链接过期、库被清、浏览器禁了 IndexedDB
+        // 都会走到这里，对用户来说都是同一件事 —— 这款游戏现在打不开。
+        if (!cancelled) setMissing(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [gameId])
+
+  if (missing) return <MissingScreen />
+  if (!launch) {
+    return (
+      <main className="notice">
+        <p className="notice__text">正在打开…</p>
+      </main>
+    )
+  }
+  return <PlayerScreen launch={launch} />
+}
+
+function MissingScreen() {
   return (
-    <main className="shell">
-      <header className="shell__header">
-        <h1>JAVA时光</h1>
-        <p className="shell__subtitle">V1.0 独立重构 · 工程骨架</p>
-      </header>
-
-      <section className="shell__card">
-        <h2>阶段交付状态</h2>
-        <ul className="status-list">
-          {MODULES.map((m) => (
-            <li key={m.name} className={`status-list__item status-list__item--${m.phase}`}>
-              <span className="status-list__name">{m.name}</span>
-              <span className="status-list__detail">{m.detail}</span>
-              <span className="status-list__badge">{PHASE_LABEL[m.phase]}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="shell__card">
-        <h2>运行时自检</h2>
-        <p>
-          适配层当前状态：<code>{state}</code>
-        </p>
-        <p className="shell__hint">
-          这一页挂的是 Mock 实现，不加载任何 J2ME 内核。要跑真实内核，用
-          <code>?jar=</code> 指定一个程序包，例如 <code>/?jar=/assets/sokoban.jar</code>。
-        </p>
-      </section>
-
-      <footer className="shell__footer">
-        <p>内核 GPL-2.0 · 自有 GPL-2.0-or-later</p>
-      </footer>
+    <main className="notice">
+      <p className="notice__title">这个游戏不在库里</p>
+      <p className="notice__text">
+        链接可能过期了，或者这款导入的游戏已经被删除。回到游戏库重新选一个试试。
+      </p>
+      <a className="notice__action" href={LIBRARY_HASH}>
+        回到游戏库
+      </a>
     </main>
   )
 }

@@ -9,6 +9,8 @@ import {
 
 import { attachKeyboardInput } from '@/input/keyboard'
 import { DEFAULT_KEYMAP, KEYMAP_HINT } from '@/input/keymap'
+import { LIBRARY_HASH, type GameLaunch } from '@/library'
+import { libraryRepository } from '@/library/instance'
 import {
   PluotSorbetRuntime,
   RuntimeFailure,
@@ -38,9 +40,13 @@ import { Keypad } from './Keypad'
 const saveService = createSaveService(createIdbRepository())
 
 interface PlayerScreenProps {
-  /** 程序包地址。阶段 1 由 URL 参数指定，阶段 2 由游戏库提供 */
-  readonly jarUrl: string
-  readonly displayName: string
+  /**
+   * 启动一款游戏需要的一切：标题、期望指纹、以及「怎么把字节读出来」。
+   *
+   * 运行页刻意不知道自己玩的是内置包还是用户导入的 —— 两者的差异收在
+   * `library/entries.ts` 里，这里只剩一条路径。
+   */
+  readonly launch: GameLaunch
 }
 
 const STATE_LABEL: Record<RuntimeState, string> = {
@@ -69,12 +75,13 @@ const STATE_HINT: Record<RuntimeState, string> = {
 }
 
 /**
- * 运行页。阶段 1 的形态：画面 + 键区 + 状态。
+ * 运行页。
  *
- * 它承担的职责只有「把一个 JAR 送进内核，然后让按键有地方可去」。
- * 游戏库、存档、倍速都在后面，这里刻意不做。
+ * 它承担的职责只有「把一个程序包送进内核，然后让按键有地方可去」。
+ * 游戏库、搜索、筛选都在库页；这里只认一个 `GameLaunch`。
  */
-export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
+export function PlayerScreen({ launch }: PlayerScreenProps) {
+  const { title: displayName, expectedFingerprint } = launch
   const hostRef = useRef<HTMLDivElement>(null)
   const runtimeRef = useRef<PluotSorbetRuntime | null>(null)
   const [state, setState] = useState<RuntimeState>('idle')
@@ -134,11 +141,7 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
         setState('loading')
         setMessage(null)
 
-        const response = await fetch(jarUrl)
-        if (!response.ok) {
-          throw new Error(`程序包请求失败（HTTP ${response.status}）`)
-        }
-        const bytes = new Uint8Array(await response.arrayBuffer())
+        const bytes = await launch.load()
 
         /*
          * 指纹算不出来就**不要启动**，不是「先跑起来，存档以后再说」。
@@ -158,6 +161,21 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
           )
         }
         if (disposed) return
+
+        /*
+         * 与清单登记的指纹比对。
+         *
+         * 清单里的指纹是生成资产时算的。如果 `public/games` 下的文件被换过
+         * （重新生成清单但没换资源、或者部署时缓存了旧文件），这里会不一致：
+         * 继续启动的话，游戏会带着「新内容的指纹」去读「旧版本存的档」，
+         * 两边结构不一定兼容。停在这里是唯一能保证不串档的位置。
+         */
+        if (expectedFingerprint && contentHash !== expectedFingerprint) {
+          throw new Error(
+            `程序包与清单登记的不一致（期望 ${briefHash(expectedFingerprint)}，` +
+              `实际 ${briefHash(contentHash)}）。为避免读到别的版本留下的存档，已停止启动。`,
+          )
+        }
         setFingerprint(contentHash)
 
         /*
@@ -213,6 +231,14 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
         }
 
         await runtime.start()
+
+        // 「玩过」记在启动成功之后：启动就失败的游戏不该出现在「最近玩过」里。
+        // 不阻塞启动，失败也只是少一条记录 —— 不值得让画面等它。
+        if (launch.trackPlay !== false) {
+          void libraryRepository.recordPlay(launch.id, Date.now()).catch(() => {
+            // 记录失败不影响玩；下一局还会再记一次。
+          })
+        }
       } catch (cause) {
         if (disposed) return
         setState('failed')
@@ -227,7 +253,9 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
       runtimeRef.current = null
       void runtime?.dispose()
     }
-  }, [jarUrl, displayName, attempt])
+    // 依赖 `launch.id` 而不是整个 `launch`：调用方每次渲染都可能重建对象，
+    // 按对象比较会让 effect 反复重跑，表现成「游戏启动到一半又重启」。
+  }, [launch.id, attempt])
 
   const sendKey = useCallback((control: InputControl, phase: KeyPhase) => {
     runtimeRef.current?.sendKey(control, phase)
@@ -248,7 +276,7 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
         // 停不下来也得让用户走：内核没有优雅退出路径，卸载时 dispose 兜底。
       }
       await archiveChain.current
-      window.location.href = location.pathname
+      goLibrary()
     })()
   }, [])
 
@@ -402,7 +430,7 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
             存档
           </button>
         ) : null}
-        <a className="player__exit" href={location.pathname} onClick={handleExit}>
+        <a className="player__exit" href={LIBRARY_HASH} onClick={handleExit}>
           返回
         </a>
       </header>
@@ -507,6 +535,28 @@ export function PlayerScreen({ jarUrl, displayName }: PlayerScreenProps) {
       <p className="player__hint">{KEYMAP_HINT}</p>
     </main>
   )
+}
+
+/**
+ * 回库页。
+ *
+ * 优先走 hash 而不是整页跳转：库页的 104 条清单与封面已经在浏览器缓存里，
+ * 整页刷新会把内核也重新装配一遍，退出反而要等好几秒。
+ *
+ * `?jar=` 这条开发通道必须改成整页跳转 —— 只改 hash 的话查询串还在，
+ * App 又会把这一页判断成运行页，表现成「点了返回没反应」。
+ */
+function goLibrary(): void {
+  if (new URLSearchParams(window.location.search).has('jar')) {
+    window.location.href = window.location.pathname + LIBRARY_HASH
+    return
+  }
+  window.location.hash = LIBRARY_HASH
+}
+
+/** 指纹只在前 8 位有意义，完整 64 位放进错误提示会读不下去。 */
+function briefHash(fingerprint: string): string {
+  return fingerprint.replace(/^sha256:/, '').slice(0, 8)
 }
 
 /**

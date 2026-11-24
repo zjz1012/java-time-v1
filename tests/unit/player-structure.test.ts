@@ -18,8 +18,10 @@ describe('运行页的失败出路', () => {
     // 坏包会一直不出画，撑到超时。用户此时唯一的动作应该是换一个包重来。
     expect(player).toContain('player__retry')
     expect(player).toContain('setAttempt((n) => n + 1)')
-    // 重试必须让 effect 重跑：内核 iframe 的状态收不回来，只能整个重建
-    expect(player).toMatch(/\}, \[jarUrl, displayName, attempt\]\)/)
+    // 重试必须让 effect 重跑：内核 iframe 的状态收不回来，只能整个重建。
+    // 依赖里放 `launch.id` 而不是整个 `launch`：调用方每次渲染都可能重建
+    // 那个对象，按对象比较会让 effect 反复重跑（游戏启动到一半又重启）。
+    expect(player).toMatch(/\}, \[launch\.id, attempt\]\)/)
   })
 
   it('触屏上不显示物理键盘提示', () => {
