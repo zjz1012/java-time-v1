@@ -212,6 +212,15 @@
          * 盯着转圈猜哪里错了。
          */
         var MISSING_NATIVE_GRACE_MS = 3000
+        /*
+         * 补过桩之后的启动上限，必须明显短于外壳的 15 秒兜底。
+         *
+         * 补桩就代表「已经知道内核缺东西」：能出画的（实测 grass-strike）1 秒内就出了，
+         * 出不来的就是永远出不来。若这里还用 20 秒，外壳会先在第 15 秒报
+         * 「启动超时 · 可能是程序包不完整」—— 把我们已经查清的原因盖掉，
+         * 用户按那句话去查包体大小，方向全错。
+         */
+        var SHIMMED_START_TIMEOUT_MS = 8000
 
         /*
          * 存档相关的常量。全部来自对内核产物的实测（ADR 0005）：
@@ -369,6 +378,123 @@
             /* 记日志本身不该成为新的失败源 */
           }
           return rawConsoleError.apply(console, arguments)
+        }
+
+        /*
+         * 三、给内核缺失的 native 补桩。
+         *
+         * 上面那节只是「把卡死翻译成人话」，这里尝试真的让游戏跑起来。
+         *
+         * 事实基础（都来自内核源码，不是猜的）：
+         *   - `midp/gfx.js` 里注册了一批 LCDUI 的 native 桩，但 **ChoiceGroup 一个都没注册**。
+         *     Form 的 item 渲染在 pluotsorbet 里本就是半成品（ItemLFImpl.show0 / setSize0 /
+         *     getPreferredHeight0 全是 no-op 或返回常数），Canvas 与 Alert 才是完整路径。
+         *   - 因此缺的这 12 个方法**不会有人替我们实现**，不补就必然卡在构造 Form 上。
+         *
+         * 补桩能给到的是「不卡死」：ChoiceGroup 变成一个尺寸为常数、不绘制、不可交互的
+         * item，游戏能继续往下走到 Canvas。给不到的是「列表菜单能选」—— 那是要重做 Form
+         * 渲染，不是补桩能解决的，所以补完必须实测，不能默认可玩。
+         *
+         * 时机不能挪：Native 表是 j2me.js 顶层 `var Native = Object.create(null)` 建的，
+         * main-all.js（内含 midp/*.js）执行时才把 500 多个键填进去。所以只能在
+         * 「j2me.js 之后、main-all.js 之前」插进来 —— 早了没有表，晚了 MIDlet 已经在
+         * 构造 Form 了。
+         *
+         * 签名必须逐字符对齐 Java 声明（ChoiceGroupLFImpl.java 的 12 个 private native）。
+         * 少一个分号、把 boolean 写成 Z 以外的东西，`implKey in Native` 就是 false，
+         * 桩等于没写，而且失败现象跟没补一模一样 —— 这种错只能靠单测钉住。
+         */
+        var NATIVE_SHIM_KEYS = {
+          /** 滚动字幕：纯装饰，设为空实现即可，界面少一行字，不影响操作。 */
+          ticker: ['javax/microedition/lcdui/DisplayableLFImpl.setTicker0.(ILjava/lang/String;)V'],
+          /** 列表选择控件：12 个方法缺一不可，漏一个就在下一个方法上重新卡住。 */
+          choiceGroup: [
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.createNativeResource0.(ILjava/lang/String;III[Ljavax/microedition/lcdui/ChoiceGroup$CGElement;II)I',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.insert0.(IILjava/lang/String;Ljavax/microedition/lcdui/ImageData;Z)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.delete0.(III)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.deleteAll0.(I)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.set0.(IILjava/lang/String;Ljavax/microedition/lcdui/ImageData;Z)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.setSelectedIndex0.(IIZ)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.setSelectedFlags0.(I[ZI)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.setFitPolicy0.(II)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.setFont0.(IIIII)V',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.getSelectedIndex0.(I)I',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.getSelectedFlags0.(I[ZI)I',
+            'javax/microedition/lcdui/ChoiceGroupLFImpl.isSelected0.(II)Z',
+          ],
+        }
+        /** 补过的桩。为空表示这款游戏没用到，报错文案照旧。 */
+        var shimmedNatives = []
+
+        function installNativeShims() {
+          var Native = window.Native
+          if (!Native || typeof Native !== 'object') return
+
+          var noop = function () {}
+          var applied = []
+
+          /** 内核自己有实现就不碰 —— 补桩只能填空，不能覆盖。 */
+          function fill(key, fn) {
+            if (typeof Native[key] === 'function') return
+            Native[key] = fn
+            applied.push(key)
+          }
+
+          NATIVE_SHIM_KEYS.ticker.forEach(function (key) {
+            fill(key, noop)
+          })
+
+          /*
+           * ChoiceGroup 的桩要维护一点状态，不能全返回常数：
+           *   - 没有元素时 getSelectedIndex0 必须返回 -1，返回 0 会让 Java 层去取
+           *     第 0 个元素，直接 ArrayIndexOutOfBounds；
+           *   - 其余情况返回 0（第一项），让单选型菜单至少有个合法默认值。
+           * 元素数按下标存，不假设只有一个 ChoiceGroup（一款游戏建多个是合法的）。
+           */
+          var elementCounts = {}
+          var nextChoiceGroupId = 1
+
+          fill(NATIVE_SHIM_KEYS.choiceGroup[0], function (addr, ownerId, label, layout, choiceType,
+            fitPolicy, elements, numChoices, selectedIndex) {
+            var id = nextChoiceGroupId++
+            elementCounts[id] = numChoices || 0
+            return id
+          })
+          // insert0 / delete0 / deleteAll0 / set0 / setSelectedIndex0 / setSelectedFlags0 /
+          // setFitPolicy0 / setFont0：全部是「把状态同步给 native 界面」的单向通知。
+          // 我们没有 native 界面，所以正确地什么都不做 —— 这不是偷懒，语义就是 no-op。
+          NATIVE_SHIM_KEYS.choiceGroup.slice(1, 9).forEach(function (key) {
+            fill(key, noop)
+          })
+          fill(NATIVE_SHIM_KEYS.choiceGroup[9], function (addr, nativeId) {
+            return elementCounts[nativeId] ? 0 : -1
+          })
+          fill(NATIVE_SHIM_KEYS.choiceGroup[10], function () {
+            return 0
+          })
+          fill(NATIVE_SHIM_KEYS.choiceGroup[11], function () {
+            return 0
+          })
+
+          shimmedNatives = applied
+          if (applied.length) {
+            console.warn('[host] 已补 ' + applied.length + ' 个内核缺失的 native 实现')
+          }
+        }
+
+        /**
+         * 补了桩还是没出画时的话术。
+         *
+         * 「超时」对用户毫无信息量，而这里的原因我们其实知道得很具体：补桩只能让
+         * MIDlet 不在构造 Form 时卡死，补不出绘制与交互。所以别退回通用超时文案。
+         */
+        function describeShimmedDeadEnd() {
+          var usedChoiceGroup = shimmedNatives.some(function (key) {
+            return key.indexOf('ChoiceGroupLFImpl.') !== -1
+          })
+          return usedChoiceGroup
+            ? '这款游戏的主界面是列表选择菜单，内核没有实现它的绘制与按键；已做兼容处理，界面仍然出不来'
+            : '这款游戏用到的界面功能内核只有空实现，画面出不来'
         }
 
         /** 静默期归档用的三个状态：上一轮签名、连续稳定轮数、已归档过的签名。 */
@@ -1122,7 +1248,9 @@
 
         function watchForFirstPaint() {
           var canvas = document.getElementById('canvas')
-          var deadline = Date.now() + START_TIMEOUT_MS
+          // 补过桩就按更短的上限等 —— 见 SHIMMED_START_TIMEOUT_MS 的注释。
+          var startTimeout = shimmedNatives.length ? SHIMMED_START_TIMEOUT_MS : START_TIMEOUT_MS
+          var deadline = Date.now() + startTimeout
 
           function tick() {
             pollTimer = 0
@@ -1143,7 +1271,12 @@
               return
             }
             if (Date.now() > deadline) {
-              fail('TIMEOUT', '内核在 ' + START_TIMEOUT_MS / 1000 + ' 秒内没有产生画面')
+              // 补过桩还画不出来，说明这条路已经走到头了，报准确原因而不是通用超时。
+              if (shimmedNatives.length) {
+                fail('UNSUPPORTED_CAPABILITY', describeShimmedDeadEnd())
+                return
+              }
+              fail('TIMEOUT', '内核在 ' + startTimeout / 1000 + ' 秒内没有产生画面')
               return
             }
             pollTimer = setTimeout(tick, POLL_INTERVAL_MS)
@@ -1242,6 +1375,8 @@
               return loadScript('j2me.js')
             })
             .then(function () {
+              // Native 表在 j2me.js 顶层建好、由 main-all.js 填键；补桩只能卡这两者之间。
+              installNativeShims()
               return loadScript('main-all.js')
             })
             .then(function () {
