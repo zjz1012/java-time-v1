@@ -55,6 +55,82 @@ function sha256File(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex')
 }
 
+// ------------------------------------------------------------------ 0 --check
+/*
+ * `--check` 只核对**仓库现状**：catalog 里登记的游戏、`public/games` 下的包体、
+ * 以及包体的真实字节三者是否一致。
+ *
+ * 它**不读上游清单** —— 上游目录只在生成时用得到。早先这里先读源清单再判断
+ * `--check`，结果 CI 上没有 `../j2me-toy` 就直接失败：一台只拿到本仓库的机器
+ * 连「自己的资产对不对」都验不了，这个检查等于只在开发机上有效。
+ */
+if (checkOnly) {
+  process.exit(runCheck())
+}
+
+function runCheck() {
+  const issues = []
+
+  if (!existsSync(CATALOG)) {
+    console.error('[fail] 缺少 src/library/catalog.ts')
+    return 1
+  }
+  const text = readFileSync(CATALOG, 'utf8')
+
+  // 条目是生成时写死的一行一条，形如：
+  //   { id: 'snake', title: '…', …, fingerprint: 'sha256:…' },
+  const entries = []
+  const lineRe = /^ {2}\{ id: '([^']+)', title: .*fingerprint: '(sha256:[0-9a-f]{64})' \},$/gm
+  for (const match of text.matchAll(lineRe)) {
+    entries.push({ id: match[1], fingerprint: match[2] })
+  }
+  if (entries.length === 0) {
+    console.error('[fail] catalog 里没有解析出任何游戏条目')
+    return 1
+  }
+
+  const seen = new Set()
+  for (const entry of entries) {
+    if (seen.has(entry.id)) issues.push(`${entry.id}: catalog 里重复登记`)
+    seen.add(entry.id)
+
+    const file = join(DEST, `${entry.id}.data`)
+    if (!existsSync(file)) {
+      issues.push(`${entry.id}: public/games 下缺少 .data`)
+      continue
+    }
+    // 这里重算，不信任清单里写的值：清单与字节不一致时，错的可能是任何一边，
+    // 而后果是存档落到别人的键上（或读不到自己的档）。
+    const actual = `sha256:${sha256File(file)}`
+    if (actual !== entry.fingerprint) {
+      issues.push(`${entry.id}: 指纹与文件不符（清单 ${entry.fingerprint.slice(7, 15)}…，实际 ${actual.slice(7, 15)}…）`)
+    }
+    if (!existsSync(join(DEST, 'shots', `${entry.id}.png`))) {
+      issues.push(`${entry.id}: 缺少封面 shots/${entry.id}.png`)
+    }
+  }
+
+  const onDisk = existsSync(DEST)
+    ? readdirSync(DEST)
+        .filter((name) => name.endsWith('.data'))
+        .map((name) => name.slice(0, -'.data'.length))
+    : []
+  for (const id of onDisk) {
+    if (!seen.has(id)) issues.push(`public/games/${id}.data 没有登记在 catalog 里`)
+  }
+  if (onDisk.length !== entries.length) {
+    issues.push(`数量不一致：catalog ${entries.length} 款，public/games ${onDisk.length} 个 .data`)
+  }
+
+  if (issues.length > 0) {
+    for (const issue of issues) console.error(`[fail] ${issue}`)
+    console.error(`\n共 ${issues.length} 项不一致，重跑 node scripts/import-games.mjs 即可同步。`)
+    return 1
+  }
+  console.log(`[ok] 内置游戏与清单一致：${entries.length} 款，逐款指纹与字节相符`)
+  return 0
+}
+
 // ------------------------------------------------------------------ 1 读源清单
 if (!existsSync(join(SOURCE, 'manifest.json'))) {
   console.error(`[fail] 找不到源清单：${join(SOURCE, 'manifest.json')}`)
@@ -150,34 +226,7 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
-// ------------------------------------------------------------------ 3 --check：比对现状
-if (checkOnly) {
-  const stale = []
-  if (!existsSync(CATALOG)) fail('缺少 src/library/catalog.ts')
-  else {
-    const text = readFileSync(CATALOG, 'utf8')
-    for (const game of games) {
-      if (!text.includes(`id: ${jsString(game.id)}`)) stale.push(`${game.id}: catalog 里没有`)
-      else if (!text.includes(game.fingerprint)) stale.push(`${game.id}: 指纹与文件不符`)
-    }
-    for (const game of games) {
-      if (!existsSync(join(DEST, `${game.id}.data`))) stale.push(`${game.id}: public/games 下缺少 .data`)
-    }
-    const onDisk = existsSync(DEST) ? readdirSync(DEST).filter((n) => n.endsWith('.data')) : []
-    if (onDisk.length !== games.length) {
-      stale.push(`public/games 有 ${onDisk.length} 个 .data，清单是 ${games.length} 个`)
-    }
-  }
-  if (stale.length > 0) {
-    for (const s of stale) console.error(`[fail] ${s}`)
-    console.error(`\n共 ${stale.length} 项不一致，重跑 node scripts/import-games.mjs 即可同步。`)
-    process.exit(1)
-  }
-  console.log(`[ok] 内置游戏与清单一致：${games.length} 款，${usedCategories.length} 个分类`)
-  process.exit(0)
-}
-
-// ------------------------------------------------------------------ 4 复制资产
+// ------------------------------------------------------------------ 3 复制资产
 mkdirSync(join(DEST, 'shots'), { recursive: true })
 for (const game of games) {
   // 落盘名用 id，而不是源文件名：源文件名带空格/大小写不一致时，
@@ -186,7 +235,7 @@ for (const game of games) {
   if (game.shot) copyFileSync(join(SOURCE, game.shot), join(DEST, 'shots', `${game.id}.png`))
 }
 
-// ------------------------------------------------------------------ 5 写 catalog
+// ------------------------------------------------------------------ 4 写 catalog
 const lines = []
 lines.push('/**')
 lines.push(' * 内置游戏清单。')
