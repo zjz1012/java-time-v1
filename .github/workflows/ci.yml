@@ -21,6 +21,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run check:provenance
+      # 内置游戏的清单是生成物：这里核对「catalog ↔ public/games ↔ 真实字节」
+      # 三者一致（逐款重算 sha256）。改了清单没重跑生成脚本会在这里红。
+      - run: npm run check:games
 
       # 内核产物不入库，CI 里不构建；脚本在产物缺失时直接跳过。
       # 真正需要校验产物时，在发布流程里构建后再跑。

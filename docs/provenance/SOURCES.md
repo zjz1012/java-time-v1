@@ -2,7 +2,7 @@
 
 > 本文件是唯一可信的来源清单。任何未在此登记的第三方代码或素材，不得进入仓库。
 > 「精确版本」不接受「最新版」这种写法；commit / 版本号 / 校验值三选一，必须可复核。
-> 最近审核：2026-11-23
+> 最近审核：2026-11-24（新增 §5 内置游戏 104 款；§4 素材表不再声称「不含第三方游戏包」）
 
 ---
 
@@ -130,17 +130,61 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 
 | 素材 | 来源 | 授权状态 |
 |---|---|---|
-| `src/ui/app.css` | 本项目自写 | 自有 |
-| 测试用 MIDlet | **尚未创建**，将由本仓库 `tests/fixtures/` 源码编译 | 自有 |
+| `src/ui/*.css` | 本项目自写 | 自有 |
+| 测试用 MIDlet | 由本仓库自研源码编译，按来源登记不入库（同内核产物） | 自有 |
+| 内置游戏包体 `public/games/*.data` | 见 §5 | 自有 6 款 + MIT 98 款 |
+| 内置游戏截图 `public/games/shots/*.png` | 由对应游戏在真内核中取首帧后截取 | 同该游戏的授权 |
 
-**当前仓库不含任何第三方图片、字体、音乐、游戏 JAR。**
+**当前仓库不含任何来源未登记的第三方图片、字体、音乐或游戏包。**
+内置游戏是**唯一**随包分发的第三方程序，逐个来源见 §5；除此之外没有例外。
 
-（例外说明：内核产物目录下的 `style/emoji/` 属于上游资源，但它落在 `public/kernel/` 内，
-该目录不入库，随产物单独分发，见 §1.1.2。）
+（另一处例外说明：内核产物目录下的 `style/emoji/` 属于上游资源，但它落在
+`public/kernel/` 内，该目录不入库，随产物单独分发，见 §1.1.2。）
 
 ---
 
-## 五、明确不登记（已排除）
+## 五、内置游戏（104 款，随包分发）
+
+### 5.1 分组
+
+| 来源 | 款数 | 权利 / 许可 | 上游 | 许可原文 |
+|---|---|---|---|---|
+| 本项目自研（`midlets/src/*.java` 编译产物） | 6 | 自有，随本项目以 GPL-2.0-or-later 分发 | 本仓库 | — |
+| j2me-100-games | 90 | **MIT**，Copyright (c) 2026 Agneay B Nair and the J2ME Game Archive contributors | `https://github.com/agneay/j2me-100-games` | `license-texts/MIT.txt` §1 |
+| my-j2me-projects | 7 | **MIT**，Copyright (c) pisces312 | `https://github.com/pisces312/my-j2me-projects` | `license-texts/MIT.txt` §2 |
+| Shooter | 1 | **MIT**，Copyright (c) 2019 Muhammad Rehan Saeed | `https://github.com/RehanSaeed/Shooter` | `license-texts/MIT.txt` §3 |
+| **合计** | **104** | | | |
+
+自研 6 款：Breakout / Drop / 2048 / Memory / Snake / Sokoban。
+`HelloMidlet` 仅作内核冒烟测试，不进入游戏库，也不随包分发。
+
+三份 MIT 是**各自独立授权**（版权人不同），许可正文恰好相同，因此
+`license-texts/MIT.txt` 只留一份正文，但逐一列明三份版权行 —— MIT 要求保留的
+正是「版权声明与许可声明」，缺版权行等于没遵守。
+
+### 5.2 收录边界
+
+1. **不收录任何缺少分发授权的商业作品。** 上游 `j2me-100-games` 共 100 款，
+   本仓库收录 90 款：10 款未收录（6 款与自研玩法重复、1 款扫雷改用 pisces 版、
+   3 款赌桌/下注题材因内容合规不收录）。「不收录」指对应的包体与截图都不在包里，
+   不是改名后继续分发。
+2. Shooter 为 2006 年竖版卷轴射击，上游仓库带 `src/` 与 `LICENSE`。本仓库只做了
+   「去掉 `res/Thumbs.db` 与 `.timestamp`」的重打包，未改动任何 `.class` 与素材。
+3. 这批 MIT 游戏是**独立程序**，由模拟器内核加载运行，不与内核形成衍生作品关系，
+   因此不改变内核部分（GPL-2.0）的分发要求。
+
+### 5.3 可复核性
+
+- 清单是生成物：`src/library/catalog.ts` 由 `node scripts/import-games.mjs`
+  从上游清单生成，**逐个重算** SHA-256，不抄任何写入的值。
+- 一致性自检：`npm run check:games` 校验「catalog ↔ `public/games/*.data` ↔
+  实际字节」三者一致，多一个少一个都失败（CI 每次跑）。
+- 每个包体的指纹同时是存档隔离键（见 ADR 0005 决策 5），清单里的指纹与真实
+  字节不符时运行页会拒绝启动，不会带着错误的身份去读别人的存档。
+
+---
+
+## 六、明确不登记（已排除）
 
 以下内容经核查后**不进入**本仓库，登记在此仅为留痕：
 
@@ -181,7 +225,7 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 
 ---
 
-## 六、登记纪律
+## 七、登记纪律
 
 1. 新增第三方代码前先登记，后写代码。未登记不予合并。
 2. 版本号写精确值；用 git 依赖的写 commit 全哈希。
