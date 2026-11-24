@@ -30,6 +30,22 @@
 
 ### 新增
 
+- **游戏库（F17）**：104 款内置游戏随包（自研 6 + MIT 98），支持搜索、
+  分类筛选、「我导入的」视图、最近游玩，以及导入本地 JAR。见 ADR 0006。
+  - 清单 `src/library/catalog.ts` 是**生成物**：`node scripts/import-games.mjs`
+    从上游清单读、逐款重算 SHA-256、复制资产。指纹同时是存档隔离键，
+    也是「文件有没有被换过」的校验值 —— 运行页 fetch 后重算比对，不符即拒绝启动。
+  - `npm run check:games` 核对「catalog ↔ `public/games` ↔ 真实字节」，
+    多一个少一个都失败（CI 每次跑）。
+  - 路由改成 hash（`#/`、`#/play/<id>`），静态托管放子路径也不会 404；
+    `?jar=` 保留为开发通道，不写游玩记录。
+  - 搜索是「空格分词 + 全部命中」，不做拼音（宁可搜不到，也不要搜出一堆无关结果）。
+  - 导入按不可信输入处理：体积上限 16 MiB、ZIP 魔数、指纹格式、id 冲突；
+    标题优先取 `META-INF/MANIFEST.MF` 的 `MIDlet-Name`（导入 `sokoban.jar`
+    显示「推箱子」），读不到才退回文件名。解压只用 `DecompressionStream`，
+    任何异常都降级，不打断导入。
+  - 导入的游戏存 IndexedDB，元数据与字节分两个 store —— 否则列表页的
+    `getAll()` 会把所有包的字节一起读进内存。
 - **发布验收工作流** `.github/workflows/release.yml`：推 `v*` 标签或手动触发时
   构建内核（emsdk 2.0.34 + JDK）→ 真浏览器跑全量 e2e → `scripts/verify-e2e-report.mjs`
   校验报告。**0 通过、有跳过、有 flaky 都判失败** —— 因为 `playwright test` 对
@@ -45,9 +61,12 @@
   结果不变、`subtle` 抛错时降级。
 - `tests/unit/saves-archive.test.ts` 新增「指纹门禁」一组：占位串 / 空串 / 无前缀 /
   大写十六进制 / 非法长度在读、写、导出、导入四个入口都被拒，且**归档被拒时
-  不会覆盖别的游戏** —— 这与「串档之后界面一切正常」正好相反，所以要单独钉住。- 单元测试总数 110 → 178；其中 `saves-format` 11 → 30（构造包全覆盖）、
+  不会覆盖别的游戏** —— 这与「串档之后界面一切正常」正好相反，所以要单独钉住。- 单元测试总数 110 → 258；其中 `saves-format` 11 → 30（构造包全覆盖）、
   `saves-archive` 9 → 18（指纹门禁）、`e2e-guard` 5 → 12，
-  新增 `hash` 13 / `host-restore` 9 / `saves-import` 11。真内核 e2e 仍为 9 项（29 秒）。
+  新增 `hash` 13 / `host-restore` 9 / `saves-import` 11 /
+  `library-catalog` 8 / `library-routes` 11 / `library-filter` 16 /
+  `library-store` 11 / `library-import` 19 / `library-manifest` 15。
+  真内核 e2e 9 → 14 项（32 秒），新增 `library.spec.ts` 5 项。
 
 - **存档（F13 / F14 / F15）：外壳托管，内核文件系统只作运行期缓存**。见
   `docs/decisions/0005-saves.md`。
