@@ -32,12 +32,13 @@ const USER_FACING: Record<RuntimeErrorCode, string> = {
    * 外壳只能等到超时。真凶常常是包本身，不是设备。
    */
   TIMEOUT: '启动超时。可能是程序包不完整、文件过大，或设备性能不足。',
+  SAVE_RESTORE_FAILED: '存档没能恢复，已停止启动，避免游戏在空档上覆盖掉原存档。',
   ABORTED: '操作已取消。',
   INTERNAL: '运行组件内部错误。',
 }
 
 export function describeFailure(failure: RuntimeFailure): string {
-  return describeErrorCode(failure.code)
+  return describeErrorCode(failure.code, failure.message)
 }
 
 /**
@@ -46,7 +47,17 @@ export function describeFailure(failure: RuntimeFailure): string {
  * 单独暴露是因为 UI 也会从事件里收到 `RuntimeErrorPayload`（只有码，没有异常对象），
  * 两条路必须有同一套措辞 —— 否则同一个故障在「抛出来的」和「事件里的」场合
  * 会显示两种说法。
+ *
+ * `detail` 只对**我们自己写的**码生效（宿主页里的那句原因）。内核抛出的原始
+ * 信息不往外透：它常常只有一句话，既不能告诉用户该做什么，也不该出现在界面上。
  */
-export function describeErrorCode(code: RuntimeErrorCode): string {
-  return USER_FACING[code] ?? USER_FACING.INTERNAL
+export function describeErrorCode(code: RuntimeErrorCode, detail?: string): string {
+  const base = USER_FACING[code] ?? USER_FACING.INTERNAL
+  /*
+   * 存档恢复失败必须带上原因：用户能做的事完全取决于它
+   * （关掉别的标签页 / 清理站点数据 / 换个浏览器），
+   * 一句「内部错误」等于让人无从下手。
+   */
+  if (code === 'SAVE_RESTORE_FAILED' && detail) return `${base}原因：${detail}。`
+  return base
 }

@@ -141,6 +141,13 @@ export type RuntimeErrorCode =
   | 'PROTOCOL_MISMATCH'
   | 'INVALID_TRANSITION'
   | 'UNSUPPORTED_CAPABILITY'
+  /**
+   * 启动前没能把存档灌进内核。
+   *
+   * 这条必须是**失败**而不是警告：恢复没成功还继续启动，游戏就会在空档或
+   * 上一款游戏的残留档上跑，退出时再把这份错数据写回归档（ADR 0005）。
+   */
+  | 'SAVE_RESTORE_FAILED'
   | 'TIMEOUT'
   | 'ABORTED'
   | 'INTERNAL'
