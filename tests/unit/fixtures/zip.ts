@@ -4,7 +4,7 @@
  * 为什么不用 `saves/zip.ts` 的 `createZip`：那个只写 STORE，而真实 JAR 的
  * `MANIFEST.MF` 几乎都是 deflate 压缩的 —— 用 STORE 造样本等于跳过了主路径。
  *
- * 这里不写 CRC32：被测的 `manifest.ts` 只按中央目录定位、按本地头取数据，
+ * 这里不写 CRC32：被测的 `jar.ts` 只按中央目录定位、按本地头取数据，
  * 从不校验 CRC。填 0 不影响任何断言，反而少一处会算错的地方。
  */
 import { deflateRawSync } from 'node:zlib'

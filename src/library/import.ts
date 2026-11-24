@@ -2,16 +2,16 @@
  * 导入本地 JAR。
  *
  * 这是用户能自己塞文件进来的入口，所以和存档导入一样按「不可信输入」处理：
- * 先看体积、再看魔数、再算指纹，全部通过才写库。**不解析 JAR 里的类结构** ——
- * 内核自己会做类解析并给出可读的失败，我们在这里重复一遍只会多一套错误码。
+ * 先看体积、再看是不是 JAR（`META-INF/MANIFEST.MF` + `MIDlet-1` + 主类都在），
+ * 最后算指纹，全部通过才写库。
  *
- * 唯一的例外是 `META-INF/MANIFEST.MF`：读它只为拿显示名（`MIDlet-Name`）。
- * 用户导入 `sokoban.jar` 时卡片上写「sokoban」很怪，包里的真名是「推箱子」。
- * 这件事放在 `manifest.ts` 里，任何一步不合预期都退回文件名，绝不打断导入。
+ * 为什么要查到主类这一层：只验「文件头是 PK」时，一个普通 ZIP 也能进库，
+ * 卡片正常显示，点进去转十几秒然后给一句「启动超时」—— 用户完全不知道
+ * 是自己选错了文件。判据在 `jar.ts` 里。
  */
 import { isFingerprint, sha256Hex } from '@/shared/hash'
 
-import { readMidletInfo } from './manifest'
+import { describeJarProblem, inspectJar } from './jar'
 import { IMPORTED_CATEGORY } from './types'
 import type { ImportDraft } from './store'
 
@@ -28,7 +28,7 @@ const MAX_TITLE_CHARS = 64
 const DEFAULT_TITLE = '未命名程序'
 const DEFAULT_AUTHOR = '本地导入'
 
-export type ImportErrorCode = 'empty' | 'too-large' | 'not-archive' | 'id-conflict'
+export type ImportErrorCode = 'empty' | 'too-large' | 'not-archive' | 'not-midlet' | 'id-conflict'
 
 export class ImportError extends Error {
   readonly code: ImportErrorCode
@@ -71,8 +71,8 @@ export function titleFromFilename(name: string): string {
 /**
  * JAR 就是 ZIP，本地文件头固定以 `PK\x03\x04` 开头。
  *
- * 只认这四字节而不是「尝试解析整个 ZIP」：目的只是把「用户选错了文件」
- * （图片、文档、空文件）在写库之前挡掉，具体类能不能跑是内核的事。
+ * 只认这四字节，是为了把「用户选错了文件」（图片、文档、空文件）在**读进内存
+ * 之前**挡掉 —— 后面的结构校验要遍历中央目录，没必要为一张 15 MB 的照片做。
  */
 function looksLikeZip(bytes: Uint8Array): boolean {
   return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04
@@ -105,6 +105,15 @@ export async function parseJarFile(file: File, existingIds: readonly string[]): 
     throw new ImportError('not-archive', '这不是 JAR 文件（JAR 本质是 ZIP，文件头不符）')
   }
 
+  /*
+   * 结构校验放在算指纹之前：指纹是整包 sha256，几百 KB 到几 MB 的包算一遍
+   * 不值得，而结构检查只读中央目录里的名字。
+   */
+  const inspection = await inspectJar(bytes)
+  if (!inspection.ok || !inspection.info) {
+    throw new ImportError('not-midlet', describeJarProblem(inspection.problem))
+  }
+
   const fingerprint = await sha256Hex(bytes)
   if (!isFingerprint(fingerprint)) {
     // 理论上不会发生（sha256Hex 要么给真摘要、要么抛错），但指纹格式一旦
@@ -120,9 +129,8 @@ export async function parseJarFile(file: File, existingIds: readonly string[]): 
    * 顺序不能反：文件名是用户随手起的（`sokoban.jar`），manifest 才是作者写的
    * （「推箱子」）。反过来会让同一个包在不同人机器上显示成不同名字。
    */
-  const info = await readMidletInfo(bytes)
-  const title = cleanTitle(info?.name ?? '') || titleFromFilename(file.name)
-  const author = cleanTitle(info?.vendor ?? '') || DEFAULT_AUTHOR
+  const title = cleanTitle(inspection.info.name) || titleFromFilename(file.name)
+  const author = cleanTitle(inspection.info.vendor) || DEFAULT_AUTHOR
 
   return {
     id,

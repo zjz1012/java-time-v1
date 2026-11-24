@@ -9,17 +9,28 @@ import {
   titleFromFilename,
 } from '@/library/import'
 
-/** 合法的 ZIP 文件头。JAR 就是 ZIP，前四字节固定是 `PK\x03\x04`。 */
-const ZIP_MAGIC = [0x50, 0x4b, 0x03, 0x04]
+import { buildZip, manifestText } from './fixtures/zip'
 
-function jarBytes(extra = 0, seed = 1): Uint8Array {
-  const bytes = new Uint8Array(4 + extra)
-  bytes.set(ZIP_MAGIC)
-  for (let i = 4; i < bytes.length; i += 1) bytes[i] = (seed + i) & 0xff
-  return bytes
+/**
+ * 样本必须是**能过预检的真 JAR**（manifest + MIDlet-1 + 主类三件齐）。
+ *
+ * 这里曾经用的是「四个字节的 ZIP 魔数 + 随机填充」—— 那种包在「只验文件头」
+ * 的年代能过，加了 JAR 预检之后会被正确地拒掉。改样本不是为了迁就新校验，
+ * 而是旧样本本来就代表不了「一个能启动的程序」。
+ */
+const CLASS = new Uint8Array([0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 1])
+
+/** 最小的合法 JAR。`seed` 改主类里的字节，用来造「内容不同」的包。 */
+function jarBytes(seed = 0, name = '推箱子'): Uint8Array {
+  const body = CLASS.slice()
+  body[7] = seed & 0xff
+  return buildZip([
+    { name: 'META-INF/MANIFEST.MF', data: manifestText(name), deflate: true },
+    { name: 'MainMidlet.class', data: body, deflate: true },
+  ])
 }
 
-function jarFile(name: string, bytes = jarBytes(64, 7)): File {
+function jarFile(name: string, bytes: Uint8Array = jarBytes()): File {
   return new File([bytes as BlobPart], name)
 }
 
@@ -73,17 +84,22 @@ describe('导入游戏的 id', () => {
   })
 
   it('同一份字节总是得到同一个 id（重复导入天然去重）', async () => {
-    const bytes = jarBytes(32, 42)
+    const bytes = jarBytes(42)
     const first = await parseJarFile(jarFile('a.jar', bytes), [])
     const second = await parseJarFile(jarFile('b.jar', bytes), [])
     expect(first.id).toBe(second.id)
-    // 标题不同、id 相同：同一款游戏换个文件名导入，不该变成两款。
-    expect(first.title).not.toBe(second.title)
+    /*
+     * 标题也一样，而且**应该**一样：名字取自 manifest 的 `MIDlet-Name`，
+     * 不取自文件名。改了文件名不该让同一款游戏换一个标题 ——
+     * 文件名是用户随手起的，manifest 才是作者写的。
+     */
+    expect(first.title).toBe(second.title)
+    expect(first.title).toBe('推箱子')
   })
 
   it('不同字节得到不同 id', async () => {
-    const a = await parseJarFile(jarFile('a.jar', jarBytes(32, 1)), [])
-    const b = await parseJarFile(jarFile('b.jar', jarBytes(32, 2)), [])
+    const a = await parseJarFile(jarFile('a.jar', jarBytes(1, '推箱子')), [])
+    const b = await parseJarFile(jarFile('b.jar', jarBytes(2, '贪吃蛇')), [])
     expect(a.id).not.toBe(b.id)
   })
 })
@@ -120,14 +136,25 @@ describe('导入校验', () => {
     await expect(parseJarFile(tiny, [])).rejects.toMatchObject({ code: 'not-archive' })
   })
 
-  it('只要文件头是 ZIP 就收，不尝试解析内部', async () => {
-    // 内核会自己做类解析并给出可读的失败；这里再验一遍只会多一套错误码。
-    const truncated = new File([new Uint8Array(ZIP_MAGIC)], 'broken.jar')
-    await expect(parseJarFile(truncated, [])).resolves.toMatchObject({ id: expect.any(String) })
+  it('普通 ZIP（没有 manifest）被拒，而不是进库后启动超时', async () => {
+    // 这条曾经断言「只要文件头是 ZIP 就收」，理由是「内核会给可读提示」。
+    // 事实是内核只能给「启动超时」：用户看到一张正常卡片，点进去等十几秒，
+    // 不知道自己选错了文件。预检把这句话挪到了导入那一刻。
+    const plain = buildZip([{ name: 'readme.txt', data: 'hello', deflate: true }])
+    await expect(parseJarFile(jarFile('photos.jar', plain), [])).rejects.toMatchObject({
+      code: 'not-midlet',
+    })
+    await expect(parseJarFile(jarFile('photos.jar', plain), [])).rejects.toThrow(/MANIFEST\.MF/)
+  })
+
+  it('只有文件头的半截包被拒', async () => {
+    const truncated = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'broken.jar')
+    await expect(parseJarFile(truncated, [])).rejects.toMatchObject({ code: 'not-midlet' })
+    await expect(parseJarFile(truncated, [])).rejects.toThrow(/不是 JAR 包/)
   })
 
   it('已存在同 id 时标记 replacesExisting', async () => {
-    const bytes = jarBytes(32, 9)
+    const bytes = jarBytes(9)
     const first = await parseJarFile(jarFile('a.jar', bytes), [])
     const again = await parseJarFile(jarFile('a.jar', bytes), [first.id])
     expect(again.replacesExisting).toBe(true)
