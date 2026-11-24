@@ -30,11 +30,12 @@ jobs:
 
   # 真内核冒烟：把 JAR 喂进 PluotSorbet，验证启动 / 输入 / 退出 / 再次启动。
   #
-  # 内核产物与测试 JAR 都按设计不入库（GPL-2.0 衍生作品，按发布策略单独处理），
-  # 所以常态 CI 里这个 job 没有东西可跑 —— 它只校验用例本身能被加载。
-  # 这是有意的取舍，不装作覆盖了：真跑发生在本地或发布前，
-  # 命令是 `npm run test:e2e`（先按 README 构建内核）。
+  # ★ 名字里写清「仅加载校验」是刻意的：内核产物与测试 JAR 都按设计不入库
+  #   （GPL-2.0 衍生作品，按发布策略单独处理），所以常态 CI 里这个 job
+  #   **不执行任何内核测试**，只确认用例能被加载（语法、导入路径、配置）。
+  #   它变绿不代表真内核 E2E 通过 —— 那件事归 .github/workflows/release.yml。
   kernel-smoke:
+    name: kernel-smoke（仅加载校验，不执行内核）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +54,7 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=真内核冒烟未执行::public/kernel 或测试 JAR 不在仓库里（二者均不入库）。发布前请在本地构建内核后运行 npm run test:e2e。"
+            echo "::notice title=真内核冒烟未执行::本 job 只做加载校验。内核与测试 JAR 不在仓库里；发布验收请在 release.yml 里跑（推 v* 标签或手动触发）。"
           fi
 
       # 即使没有产物也要确认用例能被加载：语法错误、导入路径写错、

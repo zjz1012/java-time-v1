@@ -1,0 +1,141 @@
+name: Release gate
+
+# 发布验收：构建内核 → 真浏览器跑 E2E → 校验「确实跑了」。
+#
+# 为什么不放在常态 CI 里：内核要 emsdk 2.0.34 + JDK + 完整的 emcc 构建，
+# 单次 20 分钟以上；而常态 CI 的每次 push 都跑一遍没有意义。
+# 但**发布**必须跑，而且跑不到时要红 —— 这一条由本工作流负责：
+#   1. `.github/workflows/ci.yml` 的 kernel-smoke 只做「用例能加载」；
+#   2. 本工作流的 kernel-e2e 缺产物、缺测试包、用例被跳过，全部判失败。
+#
+# 触发：
+#   - 推 `v*` 标签：自动构建内核并跑全量 E2E；
+#   - 手动触发：`kernel=build` 从上游重建（默认），`kernel=require` 只接受
+#     已经放在工作区里的产物（自建 runner / 预先解压的缓存）。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      kernel:
+        description: '内核产物来源：build = 从上游重建（约 20 分钟）；require = 必须已就位'
+        type: choice
+        options: ['build', 'require']
+        default: 'build'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  kernel-e2e:
+    name: 真内核 E2E（发布验收 · 跑不到即失败）
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      # 构建脚本默认用 .work/emsdk；放家目录便于缓存。
+      EMSDK_DIR: ${{ github.workspace }}/.emsdk
+      PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/e2e.json
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # ─────────────────────────── 内核 ───────────────────────────
+      - name: 安装构建依赖
+        if: github.event_name != 'workflow_dispatch' || inputs.kernel == 'build'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential openjdk-17-jdk-headless python3 make git
+          java -version
+          python3 --version
+
+      - name: 缓存 emsdk
+        if: github.event_name != 'workflow_dispatch' || inputs.kernel == 'build'
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.emsdk
+          key: emsdk-2.0.34-${{ runner.os }}
+
+      - name: 安装 emsdk 2.0.34
+        if: github.event_name != 'workflow_dispatch' || inputs.kernel == 'build'
+        run: |
+          if [ ! -f "$EMSDK_DIR/emsdk_env.sh" ]; then
+            git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$EMSDK_DIR"
+          fi
+          "$EMSDK_DIR/emsdk" install 2.0.34
+          "$EMSDK_DIR/emsdk" activate 2.0.34
+
+      - name: 构建内核（产物不入库）
+        if: github.event_name != 'workflow_dispatch' || inputs.kernel == 'build'
+        timeout-minutes: 60
+        run: |
+          bash scripts/fetch-upstream.sh
+          bash scripts/build-kernel.sh
+
+      # 产物必须真的存在。REQUIRE_KERNEL=1 会关掉「缺了就跳过」的退路。
+      - name: 校验内核产物
+        env:
+          REQUIRE_KERNEL: '1'
+        run: npm run check:kernels
+
+      # ───────────────────────── 测试程序包 ─────────────────────────
+      # test JAR 因授权与来源登记的原因不入库（见 .gitignore），但真内核
+      # E2E 没有它就没有东西可启动。两条来源：工作区已有，或仓库 secret。
+      - name: 准备测试程序包
+        env:
+          JAR_B64: ${{ secrets.E2E_TEST_JAR_B64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p public/assets
+          if compgen -G "public/assets/*.jar" > /dev/null; then
+            echo "使用工作区里已有的测试程序包：$(ls public/assets/*.jar | head -1)"
+          elif [ -n "${JAR_B64:-}" ]; then
+            printf '%s' "$JAR_B64" | base64 -d > public/assets/e2e-test.jar
+            echo "已从仓库 secret E2E_TEST_JAR_B64 还原测试程序包"
+          else
+            echo "::error title=缺少测试程序包::public/assets 下没有任何 JAR，且未配置 secret E2E_TEST_JAR_B64。没有它真内核 E2E 无法执行，发布验收必须失败。"
+            exit 1
+          fi
+
+      # ─────────────────────────── 测试 ───────────────────────────
+      - name: 安装 Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: 真内核 E2E
+        run: npx playwright test --reporter=list,json
+
+      # 关键的一步：`playwright test` 在全部跳过时退出码是 0。
+      # 没有这一步，「缺产物 → 全部 skip」会被记成发布验收通过。
+      - name: 校验 E2E 报告（0 通过 / 有跳过 一律失败）
+        if: always()
+        run: node scripts/verify-e2e-report.mjs test-results/e2e.json
+
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-e2e-report
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # 汇总任务：只有 kernel-e2e 成功它才会跑。给发布页一个「真的跑过了」的标记。
+  release-gate:
+    name: 发布验收通过（需 kernel-e2e 全绿）
+    needs: kernel-e2e
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "真内核 E2E 已实际执行并通过：$(date -u +%FT%TZ)"

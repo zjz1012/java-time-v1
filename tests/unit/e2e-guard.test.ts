@@ -1,4 +1,6 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -14,6 +16,9 @@ import { describe, expect, it } from 'vitest'
 const ROOT = process.cwd()
 const SPEC = join(ROOT, 'tests/e2e/kernel-smoke.spec.ts')
 const CONFIG = join(ROOT, 'playwright.config.ts')
+const RELEASE = join(ROOT, '.github/workflows/release.yml')
+const CI = join(ROOT, '.github/workflows/ci.yml')
+const VERIFY = join(ROOT, 'scripts/verify-e2e-report.mjs')
 
 describe('真内核冒烟的存在性', () => {
   it('用例与配置都在仓库里', () => {
@@ -55,3 +60,89 @@ describe('真内核冒烟的存在性', () => {
     expect(spec).toContain('97, 119, 100, 115')
   })
 })
+
+/**
+ * `playwright test` 对「用例全部 skip」的退出码是 0 —— 于是「缺产物所以没跑」
+ * 和「跑通了」在 CI 上都是绿色。下面从两个方向钉住这件事：
+ * 报告校验脚本的行为（真跑它），以及工作流里确实用了它。
+ */
+describe('「没跑」不能显示成「跑过了」', () => {
+  function runVerify(report: unknown): { status: number | null; output: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'e2e-report-'))
+    const file = join(dir, 'e2e.json')
+    writeFileSync(file, JSON.stringify(report))
+    const result = spawnSync(process.execPath, ['scripts/verify-e2e-report.mjs', file], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    })
+    rmSync(dir, { recursive: true, force: true })
+    return { status: result.status, output: `${result.stdout}${result.stderr}` }
+  }
+
+  const passed = {
+    suites: [
+      {
+        title: 'kernel-smoke.spec.ts',
+        specs: [{ title: '启动：内核跑起来', ok: true }],
+        suites: [],
+      },
+    ],
+    stats: { expected: 1, skipped: 0, unexpected: 0, flaky: 0 },
+  }
+
+  it('全过 → 0，并列出实际执行的用例', () => {
+    const { status, output } = runVerify(passed)
+    expect(status).toBe(0)
+    expect(output).toContain('[ok]')
+    expect(output).toContain('启动：内核跑起来')
+  })
+
+  it('全部跳过 → 非 0（这是最容易骗过人的一种绿）', () => {
+    const { status, output } = runVerify({
+      suites: [],
+      stats: { expected: 0, skipped: 9, unexpected: 0, flaky: 0 },
+    })
+    expect(status).toBe(1)
+    expect(output).toContain('没有任何用例真正执行')
+    expect(output).toContain('跳过不等于通过')
+  })
+
+  it('有 flaky → 非 0（重试后才过，发布前要知道）', () => {
+    const { status, output } = runVerify({
+      suites: [],
+      stats: { expected: 8, skipped: 0, unexpected: 0, flaky: 1 },
+    })
+    expect(status).toBe(1)
+    expect(output).toContain('flaky')
+  })
+
+  it('报告不存在 → 非 0（测试根本没启动，而不是「没有失败」）', () => {
+    const result = spawnSync(
+      process.execPath,
+      ['scripts/verify-e2e-report.mjs', 'test-results/definitely-missing.json'],
+      { cwd: ROOT, encoding: 'utf8' },
+    )
+    expect(result.status).toBe(1)
+    expect(`${result.stdout}${result.stderr}`).toContain('读不到 E2E 报告')
+  })
+
+  it('发布工作流真的跑 E2E，并强制校验报告', () => {
+    expect(existsSync(RELEASE), '发布验收工作流被删了？').toBe(true)
+    expect(existsSync(VERIFY), '报告校验脚本被删了？').toBe(true)
+    const release = readFileSync(RELEASE, 'utf8')
+    expect(release).toContain('npx playwright test')
+    expect(release).toContain('verify-e2e-report.mjs')
+    // 报告校验必须是「无论前面成败都跑」，否则前一步失败时它会被跳过。
+    expect(release).toMatch(/校验 E2E 报告[\s\S]{0,200}if: always\(\)/)
+    // 缺产物要显式失败，而不是「跳过然后绿」。
+    expect(release).toContain('REQUIRE_KERNEL')
+    expect(release).toContain('exit 1')
+  })
+
+  it('常态 CI 的 job 名写明「只做加载校验」，不冒充内核验收', () => {
+    const ci = readFileSync(CI, 'utf8')
+    expect(ci).toContain('仅加载校验')
+    expect(ci).toContain('release.yml')
+  })
+})
+

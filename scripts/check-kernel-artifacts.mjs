@@ -7,6 +7,7 @@
  *   2. 产物里混进了应当排除的私有网络层。
  *
  * public/kernel/ 不存在时视为「尚未构建」，直接通过（CI 里不构建内核）。
+ * 但发布验收不接受这种「通过」：设 `REQUIRE_KERNEL=1` 时缺产物直接失败。
  *
  * 退出码：0 通过；1 有问题。
  */
@@ -34,6 +35,16 @@ const ARTIFACTS = [
 const FORBIDDEN = ['evalNative', 'zixing']
 
 if (!existsSync(KERNEL_DIR)) {
+  /*
+   * 发布验收要求产物必须就位。这里刻意不做「缺了就跳过」：
+   * 一旦跳过，真内核 E2E 会跟着全部 skip，而 `playwright test` 对
+   * 「全部 skip」的退出码是 0 —— 绿色，但什么都没测。
+   */
+  if (process.env.REQUIRE_KERNEL === '1') {
+    console.error('[fail] public/kernel/ 不存在，而本次要求内核产物必须就位（REQUIRE_KERNEL=1）。')
+    console.error('       构建：bash scripts/fetch-upstream.sh && bash scripts/build-kernel.sh')
+    process.exit(1)
+  }
   console.log('[skip] public/kernel/ 不存在，视为未构建内核。')
   console.log('       需要时运行：bash scripts/fetch-upstream.sh && bash scripts/build-kernel.sh')
   process.exit(0)
