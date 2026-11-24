@@ -30,6 +30,23 @@ describe('运行页的失败出路', () => {
     // 手指用户看不到键盘，那行「方向键/WASD…」只是噪音。
     expect(css).toMatch(/@media \(pointer: coarse\) \{\s*\.player__hint \{\s*display: none/)
   })
+
+  it('启动前先验包，坏包不用等超时', () => {
+    // 判据与导入共用 `inspectJar`：两套判据迟早走岔，而「导入时说能跑、
+    // 点开说跑不了」是最难解释的错。
+    expect(player).toContain("import { describeJarProblem, inspectJar } from '@/library/jar'")
+    expect(player).toContain('await inspectJar(bytes)')
+    expect(player).toContain('describeJarProblem(inspection.problem')
+    expect(player).toContain('这个程序包无法启动：')
+
+    // 顺序：先验结构再算指纹 —— 整包 sha256 不值得为坏包算一遍。
+    const loaded = player.indexOf('await launch.load()')
+    const inspected = player.indexOf('await inspectJar(bytes)')
+    const hashed = player.indexOf('await sha256Hex(bytes)')
+    expect(loaded).toBeGreaterThan(-1)
+    expect(inspected).toBeGreaterThan(loaded)
+    expect(hashed).toBeGreaterThan(inspected)
+  })
 })
 
 describe('只做竖屏', () => {

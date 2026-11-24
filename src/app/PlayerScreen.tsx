@@ -10,6 +10,7 @@ import {
 import { attachKeyboardInput } from '@/input/keyboard'
 import { DEFAULT_KEYMAP, KEYMAP_HINT } from '@/input/keymap'
 import { LIBRARY_HASH, type GameLaunch } from '@/library'
+import { describeJarProblem, inspectJar } from '@/library/jar'
 import { libraryRepository } from '@/library/instance'
 import {
   PluotSorbetRuntime,
@@ -185,6 +186,25 @@ export function PlayerScreen({ launch }: PlayerScreenProps) {
         setMessage(null)
 
         const bytes = await launch.load()
+
+        /*
+         * 启动前先验包。走到这里的不只是「刚导入的包」—— 导入通道已经预检过，
+         * 但还有两条路会送进坏包：
+         *   1. `?jar=` 开发通道直接给一个路径，没人替它验；
+         *   2. 库里的包体事后被截断或替换（部署换了文件、磁盘写了一半）。
+         * 这两条路上，坏包的表现是「转十几秒，然后一句启动超时」，用户看不出
+         * 是包的问题还是机器慢。判据与导入共用 `inspectJar`，不另写一套 ——
+         * 两套判据迟早会走岔，而「导入时说能跑、点开说跑不了」是最难解释的错。
+         *
+         * 顺序也照导入那边：先验结构，再算指纹。整包 sha256 不值得为坏包算一遍。
+         */
+        const inspection = await inspectJar(bytes)
+        if (disposed) return
+        if (!inspection.ok) {
+          throw new Error(
+            `这个程序包无法启动：${describeJarProblem(inspection.problem, inspection.info?.mainClass)}`,
+          )
+        }
 
         /*
          * 指纹算不出来就**不要启动**，不是「先跑起来，存档以后再说」。
