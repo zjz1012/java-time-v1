@@ -50,7 +50,7 @@ function readPackGames(): {
   const byRepo = new Map<string, number>()
   for (const game of games) {
     const repo = game.source?.repo
-    // 自研那 6 款没有 repo 字段，不计入「第三方来源」
+    // 自研款没有 repo 字段，不计入「第三方来源」
     if (!repo) continue
     byRepo.set(repo, (byRepo.get(repo) ?? 0) + 1)
   }

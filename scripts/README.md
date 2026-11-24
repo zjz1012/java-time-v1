@@ -14,7 +14,7 @@
 | `fixup-upstream.py` | 把上游改到能在现代工具链编译（**幂等**，可反复跑） |
 | `build-kernel.sh` | 依次执行：适配 → 配置 → 本地化 → 类库 → JVM → native → 拼接 → 收集 |
 | `build-main-all.py` | 严格按 Makefile 的 `MAIN_JS_SRCS` 顺序拼接运行时，并打外壳适配补丁 |
-| `build-midlets.mjs` | 编译 `midlets/src/` 的六款自研游戏，并与已提交的产物比对（见 `midlets/README.md`） |
+| `build-midlets.mjs` | 编译 `midlets/src/` 的十二款自研游戏，并与已提交的产物比对（见 `midlets/README.md`） |
 | `import-games.mjs` | 从上游游戏清单生成 `src/library/catalog.ts`，逐款重算指纹、复制资产 |
 | `check-provenance.mjs` | 来源登记自检：依赖是否登记、许可原文是否被改、`games.json` 是否与真实字节一致 |
 | `verify-e2e-report.mjs` | 判读 Playwright 的 JSON 报告：0 通过 / 有跳过 / 有 flaky 一律失败 |

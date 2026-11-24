@@ -1,11 +1,15 @@
 {
   "note": [
-    "六款自研 MIDlet 的构建清单。数组顺序不影响任何东西，id 必须与",
+    "自研 MIDlet 的构建清单。数组顺序不影响任何东西，id 必须与",
     "src/library/catalog.ts 里的 id 一致（校验脚本会核对）。",
     "name 是写进 manifest 的 MIDlet-Name —— 它不等于库页显示的标题：",
     "库页标题在 catalog 里（贪吃蛇 / 推箱子 / …），这里保留英文是因为",
     "play 页标题栏读的是 MIDlet-Name，改成中文会让已发布的两款换名字。",
-    "vendor 与 MicroEdition-* 三段由脚本固定写入，见 scripts/build-midlets.mjs。"
+    "vendor 与 MicroEdition-* 三段由脚本固定写入，见 scripts/build-midlets.mjs。",
+    "",
+    "后六款是为了替掉主界面依赖 Form/ChoiceGroup 的第三方包（内核的 Form 渲染层",
+    "整层是空桩，那六款画不出菜单也点不了）。它们全部用 Canvas 自绘界面，",
+    "不碰 Form —— 这不是风格偏好，是不碰内核已知缺失的那条路径。"
   ],
   "vendor": "zhimiao",
   "profile": {
@@ -18,6 +22,12 @@
     { "id": "memory", "main": "MemoryMidlet", "name": "Memory" },
     { "id": "g2048", "main": "Game2048Midlet", "name": "2048" },
     { "id": "sokoban", "main": "SokobanMidlet", "name": "推箱子" },
-    { "id": "drop", "main": "DropMidlet", "name": "坠落方块" }
+    { "id": "drop", "main": "DropMidlet", "name": "坠落方块" },
+    { "id": "guess-number", "main": "GuessNumberMidlet", "name": "猜数字" },
+    { "id": "link-pair", "main": "LinkPairMidlet", "name": "连连看" },
+    { "id": "maze-run", "main": "MazeMidlet", "name": "迷宫" },
+    { "id": "mine-field", "main": "MineFieldMidlet", "name": "扫雷" },
+    { "id": "bee-shooter", "main": "BeeShooterMidlet", "name": "小蜜蜂" },
+    { "id": "runner-dash", "main": "RunnerDashMidlet", "name": "一路向前" }
   ]
 }

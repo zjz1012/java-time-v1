@@ -110,6 +110,108 @@
       ]
     },
     {
+      "id": "guess-number",
+      "file": "guess-number.data",
+      "sha256": "cc7271055b2d2561f45687e9ea30e554ac76fdbbceba2f36d633fb71cd7bd93a",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/GuessNumberMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "GuessCanvas.class",
+        "GuessNumberMidlet.class"
+      ]
+    },
+    {
+      "id": "link-pair",
+      "file": "link-pair.data",
+      "sha256": "4b6c2128132d4164efe43d2ddf2436299bb26a393d1e1468189dab45bbabb638",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/LinkPairMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "LinkCanvas.class",
+        "LinkPairMidlet.class"
+      ]
+    },
+    {
+      "id": "maze-run",
+      "file": "maze-run.data",
+      "sha256": "88396f4b57b3707c8036d01ba5615bb5e453f77abda1e529d03cb32ee86e45c2",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/MazeMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "MazeCanvas.class",
+        "MazeMidlet.class"
+      ]
+    },
+    {
+      "id": "mine-field",
+      "file": "mine-field.data",
+      "sha256": "38966c6b39a0e14481b1464c42235511c6af8216770990b189cc512837587369",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/MineFieldMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "MineCanvas.class",
+        "MineFieldMidlet.class"
+      ]
+    },
+    {
+      "id": "bee-shooter",
+      "file": "bee-shooter.data",
+      "sha256": "48c9393193de6c5706ece0b79b41cb34f14e2b83fdb7b631d07330e1fe216d73",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/BeeShooterMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "BeeCanvas.class",
+        "BeeShooterMidlet.class"
+      ]
+    },
+    {
+      "id": "runner-dash",
+      "file": "runner-dash.data",
+      "sha256": "9bb15415ef63f08e78fbaeb2063a09358c371b7d33c88cc93d7656c050255fce",
+      "source": {
+        "kind": "self",
+        "license": "GPL-2.0-or-later",
+        "copyright": "Copyright (c) 知喵",
+        "sourcePath": "midlets/src/RunnerDashMidlet.java",
+        "build": "node scripts/build-midlets.mjs"
+      },
+      "entries": 4,
+      "classes": [
+        "RunnerCanvas.class",
+        "RunnerDashMidlet.class"
+      ]
+    },
+    {
       "id": "pixel-paddle",
       "file": "pixel-paddle.data",
       "sha256": "7f3eb40aefafe9080cacf45333ca72611030710a3dc9548846567dfdaeb34c37",
@@ -245,52 +347,6 @@
         "gamekit/Rnd.class",
         "gamekit/Sfx.class",
         "gamekit/TileMap.class"
-      ]
-    },
-    {
-      "id": "cute-bee",
-      "file": "cute-bee.data",
-      "sha256": "008855636f14faf3bcd07050f4dd4898eeb8c32ab44a7618af28a9979f8d9762",
-      "source": {
-        "kind": "upstream-source",
-        "repo": "https://github.com/pisces312/my-j2me-projects",
-        "commit": "67730c5abad898948c052d024921701d7e8caad6",
-        "path": "CuteBee7.0",
-        "license": "MIT",
-        "copyright": "Copyright (c) pisces312"
-      },
-      "build": {
-        "kind": "compile",
-        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
-      },
-      "entries": 22,
-      "classes": [
-        "Bee.class",
-        "Bullets.class",
-        "CuteBee.class",
-        "Enemy.class",
-        "EnemyAll.class",
-        "GameOverScreen.class",
-        "beeBullets.class",
-        "beeCanvas.class",
-        "enemyBullets.class",
-        "enemyFly.class",
-        "enemybulletsFly.class",
-        "keyInput.class"
-      ],
-      "upstreamClasses": [
-        "Bee.class",
-        "Bullets.class",
-        "CuteBee.class",
-        "Enemy.class",
-        "EnemyAll.class",
-        "GameOverScreen.class",
-        "beeBullets.class",
-        "beeCanvas.class",
-        "enemyBullets.class",
-        "enemyFly.class",
-        "enemybulletsFly.class",
-        "keyInput.class"
       ]
     },
     {
@@ -616,48 +672,6 @@
       ]
     },
     {
-      "id": "escapee",
-      "file": "escapee.data",
-      "sha256": "f1de8e118fdc9e4bb61bbf55b0d5266f01a53286c1731076bb9d7012b34cc345",
-      "source": {
-        "kind": "upstream-source",
-        "repo": "https://github.com/pisces312/my-j2me-projects",
-        "commit": "67730c5abad898948c052d024921701d7e8caad6",
-        "path": "Escapee11.1",
-        "license": "MIT",
-        "copyright": "Copyright (c) pisces312"
-      },
-      "build": {
-        "kind": "compile",
-        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
-      },
-      "entries": 24,
-      "classes": [
-        "Bullets.class",
-        "Escapee.class",
-        "GameOverScreen.class",
-        "GameRecordStore.class",
-        "GameSound.class",
-        "HighScoreScreen.class",
-        "ShowTime.class",
-        "escapeeCanvas.class",
-        "escapeeMIDlet.class",
-        "keyInput.class"
-      ],
-      "upstreamClasses": [
-        "Bullets.class",
-        "Escapee.class",
-        "GameOverScreen.class",
-        "GameRecordStore.class",
-        "GameSound.class",
-        "HighScoreScreen.class",
-        "ShowTime.class",
-        "escapeeCanvas.class",
-        "escapeeMIDlet.class",
-        "keyInput.class"
-      ]
-    },
-    {
       "id": "rock-blaster",
       "file": "rock-blaster.data",
       "sha256": "368af8c65ce87751df1bb46134847b771fb7c7f1239796231c32639d37188cc3",
@@ -829,50 +843,6 @@
         "gamekit/Rnd.class",
         "gamekit/Sfx.class",
         "gamekit/TileMap.class"
-      ]
-    },
-    {
-      "id": "mine-sweep",
-      "file": "mine-sweep.data",
-      "sha256": "999c0a8605928f2268f204c40570f54f08a9a08bab9a37360a5a52bc7937f1aa",
-      "source": {
-        "kind": "upstream-source",
-        "repo": "https://github.com/pisces312/my-j2me-projects",
-        "commit": "67730c5abad898948c052d024921701d7e8caad6",
-        "path": "MineMIDlet8.7",
-        "license": "MIT",
-        "copyright": "Copyright (c) pisces312"
-      },
-      "build": {
-        "kind": "compile",
-        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
-      },
-      "entries": 23,
-      "classes": [
-        "GameRecordStore.class",
-        "HighScoreScreen.class",
-        "MenuCanvas.class",
-        "MenuItem.class",
-        "MineCanvas.class",
-        "MineGrid.class",
-        "MineMidlet.class",
-        "ShowStates.class",
-        "ShowTime.class",
-        "keyMapCanvas.class",
-        "keyMapList.class"
-      ],
-      "upstreamClasses": [
-        "GameRecordStore.class",
-        "HighScoreScreen.class",
-        "MenuCanvas.class",
-        "MenuItem.class",
-        "MineCanvas.class",
-        "MineGrid.class",
-        "MineMidlet.class",
-        "ShowStates.class",
-        "ShowTime.class",
-        "keyMapCanvas.class",
-        "keyMapList.class"
       ]
     },
     {
@@ -1152,30 +1122,6 @@
       ]
     },
     {
-      "id": "guess-num",
-      "file": "guess-num.data",
-      "sha256": "d3ff0cbb35badd79bfb30f9f6a901dfd999b3bb1b2a3d27656848047f3a14427",
-      "source": {
-        "kind": "upstream-source",
-        "repo": "https://github.com/pisces312/my-j2me-projects",
-        "commit": "67730c5abad898948c052d024921701d7e8caad6",
-        "path": "GuessNum1.0",
-        "license": "MIT",
-        "copyright": "Copyright (c) pisces312"
-      },
-      "build": {
-        "kind": "compile",
-        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
-      },
-      "entries": 3,
-      "classes": [
-        "GuessNumMIDlet.class"
-      ],
-      "upstreamClasses": [
-        "GuessNumMIDlet.class"
-      ]
-    },
-    {
       "id": "code-breaker",
       "file": "code-breaker.data",
       "sha256": "69ae05728b70bdceca280d7e8bc03524297dc45493b06c886f8fccd475cd52b2",
@@ -1219,81 +1165,6 @@
         "gamekit/Rnd.class",
         "gamekit/Sfx.class",
         "gamekit/TileMap.class"
-      ]
-    },
-    {
-      "id": "lianliankan",
-      "file": "lianliankan.data",
-      "sha256": "9587f32836567e6647539366f7e42f6844aebdae4b47e8b373f8766347dca6f8",
-      "source": {
-        "kind": "upstream-source",
-        "repo": "https://github.com/pisces312/my-j2me-projects",
-        "commit": "67730c5abad898948c052d024921701d7e8caad6",
-        "path": "LianLianKan8.2",
-        "license": "MIT",
-        "copyright": "Copyright (c) pisces312"
-      },
-      "build": {
-        "kind": "compile",
-        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
-      },
-      "entries": 15,
-      "classes": [
-        "GameRecordStore.class",
-        "HighScoreScreen.class",
-        "Point.class",
-        "ShowStates.class",
-        "ShowTime.class",
-        "llkBoard.class",
-        "llkCanvas.class",
-        "llkMidlet.class"
-      ],
-      "upstreamClasses": [
-        "GameRecordStore.class",
-        "HighScoreScreen.class",
-        "Point.class",
-        "ShowStates.class",
-        "ShowTime.class",
-        "llkBoard.class",
-        "llkCanvas.class",
-        "llkMidlet.class"
-      ]
-    },
-    {
-      "id": "maze",
-      "file": "maze.data",
-      "sha256": "35040d25c6c05ec3626a4df3babaa384f9103ec50f0f41c6bff670dc92972273",
-      "source": {
-        "kind": "upstream-source",
-        "repo": "https://github.com/pisces312/my-j2me-projects",
-        "commit": "67730c5abad898948c052d024921701d7e8caad6",
-        "path": "Maze2.6",
-        "license": "MIT",
-        "copyright": "Copyright (c) pisces312"
-      },
-      "build": {
-        "kind": "compile",
-        "note": "javac --release 8 编译上游 src；manifest 由本项目生成（MIDlet-Name 取中文显示名，主类取自上游）。注意：上游 dist/*.jar 是混淆产物（a.class…），本项目用的是 src 里的原名"
-      },
-      "entries": 12,
-      "classes": [
-        "Chromosome.class",
-        "Ga.class",
-        "GaInterface.class",
-        "Maze.class",
-        "MazeCanvas$1.class",
-        "MazeCanvas.class",
-        "MazeMIDlet.class",
-        "Point.class"
-      ],
-      "upstreamClasses": [
-        "Chromosome.class",
-        "Ga.class",
-        "GaInterface.class",
-        "Maze.class",
-        "MazeCanvas.class",
-        "MazeMIDlet.class",
-        "Point.class"
       ]
     },
     {

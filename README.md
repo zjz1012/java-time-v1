@@ -9,7 +9,7 @@
 > 倍速待做。
 > 仓库**不含可运行的模拟器产物**（`public/kernel/` 是本机构建输出），
 > 但**含随包分发的内置游戏**（`public/games/`，来源逐条登记在
-> [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md) §5）与**自研 6 款的
+> [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md) §5）与**自研 12 款的
 > 完整源码**（`midlets/src/` —— 采用 GPL-2.0-or-later，对应源码随二进制一并提供）。
 
 ---
@@ -34,11 +34,11 @@ V1.0 是**独立重构版**，不继承旧版代码。模拟器内核由上游�
 | 启动遮罩 / 失败提示 / 重试 | ✅ 导入与启动**两处**都验 JAR 结构：普通 ZIP 进不了库，`?jar=` 通道与「库内包体被截断」也在 1 秒内说清原因；15 秒超时只作最后一道兜底 |
 | 存档：按游戏隔离 + ZIP 导出/导入 | ✅ 外壳托管；写失败不静默（提示条 + 退出拦截 + 重试 / 紧急导出 / 返回 / 放弃）；库页「本机数据」可看份数并清空全部存档（二次确认、只删存档）；真内核 e2e 覆盖「写档→退出→重进读回」与「运行中导入→确认→重启」 |
 | 游戏库：104 款内置 + 本地导入 | ✅ 搜索、分类筛选、「我导入的」、最近游玩；导入校验 manifest、`MIDlet-1` 与主类，标题取 `MIDlet-Name` |
-| 许可与来源登记 | ✅ 104 款逐款 sha256 / 上游 commit / 版权人（`docs/provenance/games.json`）；自研 6 款源码入库且可重建比对 |
+| 许可与来源登记 | ✅ 104 款逐款 sha256 / 上游 commit / 版权人（`docs/provenance/games.json`）；自研 12 款源码入库且可重建比对 |
 | 关于页（`#/about`） | ✅ 版本 / 内核 commit / 随包款数**构建期注入**（不手抄）；许可分层、三份许可原文（`public/licenses/`，与正本逐字节一致）、源码获取方式 |
 | 倍速 | ⛔ 未开始 |
 
-内置的 104 款是自研 6 款加三批 MIT 作品（98 款），来源与许可逐条登记在
+内置的 104 款是自研 12 款加三批 MIT 作品（92 款），来源与许可逐条登记在
 [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md) §5。清单是生成物：
 `node scripts/import-games.mjs` 从上游清单读、逐款重算指纹、复制资产，
 `npm run check:games` 负责核对「清单 ↔ 资产 ↔ 真实字节」三者一致。
@@ -55,8 +55,8 @@ V1.0 是**独立重构版**，不继承旧版代码。模拟器内核由上游�
 | `npm run test:e2e` | 真内核：启动出画、方向输入进 JVM、退出、再次启动、进出 3 次的内存与定时器、存档写→退→重进、运行中导入→确认→重启、库页点开→退出→最近玩过、存档写失败四条出路、库页清空存档、坏包在启动前被拒、关于页与许可原文可打开 | **是** |
 | `npm run check:games` | 内置游戏清单与 `public/games/*.data` 逐款一致（重算 sha256、数量、指纹唯一） | 否 |
 | `npm run check:provenance` | 依赖与随包游戏逐款来源登记齐全（上游 commit、路径、版权人、许可），且哈希与产物相符 | 否 |
-| `npm run check:midlets` | 自研 6 款的源码在、manifest 与产物对得上（不需要 JDK） | 否 |
-| `npm run verify:midlets` | 有 JDK 时重编译自研 6 款，与随包产物逐条目比字节 | 否 |
+| `npm run check:midlets` | 自研 12 款的源码在、manifest 与产物对得上（不需要 JDK） | 否 |
+| `npm run verify:midlets` | 有 JDK 时重编译自研 12 款，与随包产物逐条目比字节 | 否 |
 | `npm run check:licenses` | 随包分发的许可原文（`public/licenses/`）与仓库正本逐字节一致 | 否 |
 | `npm run verify:e2e-report <报告>` | 证明 e2e **确实跑过**：0 通过 / 有跳过 / 有 flaky 一律失败 | — |
 
@@ -152,7 +152,7 @@ public/
 ├── runtime/   宿主页 host.html
 └── assets/    本机临时放进去的程序包（不入库，只给 `?jar=` 调试用）
 midlets/
-├── src/       自研 6 款的完整 Java 源码（GPL-2.0-or-later 的对应源码）
+├── src/       自研 12 款的完整 Java 源码（GPL-2.0-or-later 的对应源码）
 └── games.json 源码 ↔ manifest 名字 ↔ 主类的对照（构建脚本读它）
 docs/
 ├── provenance/  来源登记、第三方声明、内核评估
@@ -171,7 +171,7 @@ tests/         单元 / 集成 / E2E / 测试固件
 - **内核**（PluotSorbet 及其编译产物）：`GPL-2.0`（上游 LICENSE 无 "or later"），
   不在本仓库内，按 [`scripts/README.md`](scripts/README.md) 从上游源码重建；
   来源与 commit 见 [`docs/provenance/SOURCES.md`](docs/provenance/SOURCES.md)。
-- **随包游戏**：自研 6 款（同本仓库许可，源码在 `midlets/src/`）+ MIT 98 款
+- **随包游戏**：自研 12 款（同本仓库许可，源码在 `midlets/src/`）+ MIT 92 款
   （各自保留原版权声明）。逐款的 commit、路径、版权人与哈希见
   [`docs/provenance/games.json`](docs/provenance/games.json)。
 
@@ -190,5 +190,5 @@ tests/         单元 / 集成 / E2E / 测试固件
 
 - 3D（JSR-184 / Mascot Capsule）、蓝牙（JSR-82）、无线消息（JSR-120）在自建内核下**不可用**。
 - 不支持旧版存档与旧版键位配置的迁移（规划明确不做）。
-- 随包游戏只收自研与 MIT：自研 6 款 + 第三方 MIT 98 款，逐条来源见
+- 随包游戏只收自研与 MIT：自研 12 款 + 第三方 MIT 92 款，逐条来源见
   `docs/SOURCE_AUDIT.md` §4.2；不收录任何缺少分发授权的商业 JAR。

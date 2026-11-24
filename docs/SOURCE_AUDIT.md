@@ -87,16 +87,16 @@ Electronic Arts 3、Nokia 2 等）。但这 45 条**只是清单，JAR 并不在
 
 | 类别 | 款数 | 许可 | 来源 |
 |---|---|---|---|
-| 自研（`midlets/src/*.java`） | 6 | **GPL-2.0-or-later** | Breakout / Drop / 2048 / Memory / Snake / Sokoban（旧版的 `HelloMidlet` 只用来冒烟，新版改用推箱子，故未迁入） |
+| 自研（`midlets/src/*.java`） | 12 | **GPL-2.0-or-later** | Breakout / Drop / 2048 / Memory / Snake / Sokoban / 猜数字 / 连连看 / 迷宫 / 扫雷 / 小蜜蜂 / 一路向前（旧版的 `HelloMidlet` 只用来冒烟，新版改用推箱子，故未迁入。后 6 款是 Canvas 重写，替掉主界面依赖 Form 渲染、内核画不出来的 6 个第三方包） |
 | j2me-100-games | 90 | **MIT** | https://github.com/agneay/j2me-100-games |
-| my-j2me-projects | 7 | **MIT** | https://github.com/pisces312/my-j2me-projects |
+| my-j2me-projects | 1 | **MIT** | https://github.com/pisces312/my-j2me-projects |
 | Shooter | 1 | **MIT** | https://github.com/RehanSaeed/Shooter |
 | **合计** | **104** | | `public/games/*.data` 实测 104 个文件，与登记一致 |
 
 三份 MIT 是**各自独立授权**（版权人不同），许可正文已随 `SOURCES.md` 收录。
 MIT 只要求保留版权与许可声明，**允许商用与再分发**，因此这批资产可以整体迁入 V1.0。
 
-**结论（新版）**：V1.0 **可以内置游戏**，范围为「自研 6 款 + 上述 98 款 MIT」。
+**结论（新版）**：V1.0 **可以内置游戏**，范围为「自研 12 款 + 上述 92 款 MIT」。
 需继续遵守的只有一条边界：**不收录任何缺少分发授权的商业 JAR**（规划 §1.3）——
 这与旧版清单无关，是对新增来源的约束。迁移时须把 `SOURCES.md` 第五节的登记与
 MIT 正文一并带入新仓库的 `docs/provenance/`。
@@ -104,7 +104,7 @@ MIT 正文一并带入新仓库的 `docs/provenance/`。
 **迁移结果**：已落地。`docs/provenance/SOURCES.md` §5 与
 `docs/provenance/games.json` 逐款记录了三件事 —— 整包 sha256（证明产物没被替换）、
 上游 40 位 commit 与文件路径、版权人与许可（证明**这是谁的东西**）。哈希与来源
-不能互相代替：前者说明「没换过」，后者说明「有权分发」。自研 6 款的对应源码已随
+不能互相代替：前者说明「没换过」，后者说明「有权分发」。自研 12 款的对应源码已随
 仓库提交在 `midlets/src/`，`npm run verify:midlets` 重编译后与产物逐 class 比字节。
 
 ---

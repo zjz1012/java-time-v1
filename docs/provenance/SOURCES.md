@@ -132,7 +132,7 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 |---|---|---|
 | `src/ui/*.css` | 本项目自写 | 自有 |
 | 测试用 MIDlet | 由本仓库自研源码编译，按来源登记不入库（同内核产物） | 自有 |
-| 内置游戏包体 `public/games/*.data` | 见 §5 | 自有 6 款 + MIT 98 款 |
+| 内置游戏包体 `public/games/*.data` | 见 §5 | 自有 12 款 + MIT 92 款 |
 | 内置游戏截图 `public/games/shots/*.png` | 由对应游戏在真内核中取首帧后截取 | 同该游戏的授权 |
 
 **当前仓库不含任何来源未登记的第三方图片、字体、音乐或游戏包。**
@@ -176,7 +176,7 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 `source` 里的仓库 + commit + 路径证明「这份文件是谁的」** —— 两件事分开记，
 因为它们回答的是不同的问题。
 
-### 5.2 自研 6 款：源码与构建
+### 5.2 自研 12 款：源码与构建
 
 | 游戏 | 源码 | 产物 | 编译出的类 |
 |---|---|---|---|
@@ -186,6 +186,12 @@ JDK 的 Classpath Exception 意味着编译产物不受 GPL 传染 —— 但**M
 | 2048 | `midlets/src/Game2048Midlet.java` | `g2048.data` | `Game2048Midlet` `Game2048Canvas` |
 | 推箱子 | `midlets/src/SokobanMidlet.java` | `sokoban.data` | `SokobanMidlet` `SokobanCanvas` |
 | 坠落方块 | `midlets/src/DropMidlet.java` | `drop.data` | `DropMidlet` `DropCanvas` |
+| 猜数字 | `midlets/src/GuessNumberMidlet.java` | `guess-number.data` | `GuessNumberMidlet` `GuessCanvas` |
+| 连连看 | `midlets/src/LinkPairMidlet.java` | `link-pair.data` | `LinkPairMidlet` `LinkCanvas` |
+| 迷宫 | `midlets/src/MazeMidlet.java` | `maze-run.data` | `MazeMidlet` `MazeCanvas` |
+| 扫雷 | `midlets/src/MineFieldMidlet.java` | `mine-field.data` | `MineFieldMidlet` `MineCanvas` |
+| 小蜜蜂 | `midlets/src/BeeShooterMidlet.java` | `bee-shooter.data` | `BeeShooterMidlet` `BeeCanvas` |
+| 一路向前 | `midlets/src/RunnerDashMidlet.java` | `runner-dash.data` | `RunnerDashMidlet` `RunnerCanvas` |
 
 ```bash
 node scripts/build-midlets.mjs --structural   # 结构：源码 / 产物 / 清单 / catalog 一致（无需 JDK）
@@ -193,10 +199,10 @@ node scripts/build-midlets.mjs               # 重编译并与产物逐条目比
 node scripts/build-midlets.mjs --install     # 换产物（会改内容指纹，等于让旧存档失效）
 ```
 
-最后一条是**故意做得麻烦**的：`.data` 的内容摘要就是存档隔离键，换产物等于让这六款的
+最后一条是**故意做得麻烦**的：`.data` 的内容摘要就是存档隔离键，换产物等于让这十二款的
 存档全部读不回来。默认只校验、不写回。
 
-`build-midlets.mjs` 的重编译比对照实测通过：JDK 27 + `--release 8`，18 个 class
+`build-midlets.mjs` 的重编译比对照实测通过：JDK 27 + `--release 8`，36 个 class
 与已提交的产物**逐字节相同**。换用别的 JDK 版本时 class 文件可能只差常量池顺序，
 所以这一步不挂在 CI 上（CI 只跑 `--structural`），作为发布前的人工复核步骤保留。
 
@@ -211,7 +217,7 @@ node scripts/build-midlets.mjs --install     # 换产物（会改内容指纹，
 `HelloMidlet` 早期只用于内核冒烟，现冒烟改用推箱子（`tests/e2e/game.ts`），
 它不再随本仓库维护，也不出现在任何分发物里。
 
-### 5.3 98 款 MIT：怎么用的
+### 5.3 92 款 MIT：怎么用的
 
 两种用法的法律含义不同，所以分开记，`games.json` 里也有对应的 `build.kind`：
 
@@ -249,7 +255,7 @@ pisces 那 7 款容易被记错：如果照抄上游 `dist/*.jar`，分发出去
   三者一致，多一个少一个都失败（CI 每次跑）。
 - 来源自检 `npm run check:provenance`：校验 `games.json` 与真实字节逐款对齐，并核对
   记录里的 commit 都在本文档里。
-- **源码可重建** `npm run verify:midlets`：六款自研从 `midlets/src/` 重编译后与产物
+- **源码可重建** `npm run verify:midlets`：十二款自研从 `midlets/src/` 重编译后与产物
   逐字节比对（需 JDK）。
 - 每个包体的指纹同时是存档隔离键（见 ADR 0005 决策 5），清单里的指纹与真实字节
   不符时运行页会拒绝启动，不会带着错误的身份去读别人的存档。
