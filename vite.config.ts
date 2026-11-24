@@ -30,18 +30,39 @@ function readKernelPin(): string {
 }
 
 /**
- * 随包游戏的款数，从来源登记的生成物里数。
+ * 随包游戏的款数与来源仓库，从来源登记的生成物里数。
  *
  * 关于页要写「自研 6 款 + 开源 98 款」，这个数字必须和真正随包分发的包体一致；
- * 手写在 TSX 里，下次加游戏就只剩「记得改三处」这种运气。
+ * 手写在 TSX 里，下次加游戏就只剩「记得改三处」这种运气。来源仓库同理 ——
+ * 「第三方来源」这一项要是只写「见文档」，等于把核对工作推给用户。
  */
-function readPackGames(): { total: number; self: number } {
+function readPackGames(): {
+  total: number
+  self: number
+  sources: { repo: string; count: number }[]
+} {
   const record = JSON.parse(readFileSync(`${ROOT}docs/provenance/games.json`, 'utf8')) as {
-    games?: { source?: { kind?: string } }[]
+    games?: { source?: { kind?: string; repo?: string } }[]
   }
   const games = record.games ?? []
   if (games.length === 0) throw new Error('docs/provenance/games.json 里没有游戏记录')
-  return { total: games.length, self: games.filter((game) => game.source?.kind === 'self').length }
+
+  const byRepo = new Map<string, number>()
+  for (const game of games) {
+    const repo = game.source?.repo
+    // 自研那 6 款没有 repo 字段，不计入「第三方来源」
+    if (!repo) continue
+    byRepo.set(repo, (byRepo.get(repo) ?? 0) + 1)
+  }
+
+  return {
+    total: games.length,
+    self: games.filter((game) => game.source?.kind === 'self').length,
+    // 多的排前面：读者最先想知道的是「主要来自哪」
+    sources: [...byRepo.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([repo, count]) => ({ repo, count })),
+  }
 }
 
 export default defineConfig({

@@ -108,6 +108,24 @@ export function AboutScreen() {
       </section>
 
       <section className="about__section">
+        <h2 className="about__h2">第三方来源</h2>
+        <p className="about__p">
+          MIT 那 {openSourceGames} 款全部来自下面三个上游仓库，逐款的 commit、文件路径与
+          版权人登记在仓库的 <code>docs/provenance/games.json</code>：
+        </p>
+        <ul className="about__files">
+          {__PACK_GAMES__.sources.map((source) => (
+            <li key={source.repo}>
+              <a className="about__link" href={source.repo}>
+                {source.repo.replace(/^https:\/\/github\.com\//, '')}
+              </a>
+              <span className="about__hint">{source.count} 款</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="about__section">
         <h2 className="about__h2">源码与许可原文</h2>
         <p className="about__p">
           内核构建自 <span className="about__mono">{KERNEL_URL}</span> 的固定 commit

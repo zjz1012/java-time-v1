@@ -93,4 +93,13 @@ describe('关于页上写的数字都来自正本', () => {
     // PIN 解析不出来要直接让构建失败，而不是渲染成空字符串
     expect(config).toContain('关于页无法展示内核版本')
   })
+
+  it('第三方来源也是数出来的，不是抄上去的三个仓库名', () => {
+    const about = text(ABOUT)
+    expect(about).toContain('__PACK_GAMES__.sources')
+    // 仓库名、款数一旦手写，加了游戏就会对不上，而这一页正是用来核对来源的
+    for (const repo of ['j2me-100-games', 'pisces312', 'RehanSaeed']) {
+      expect(about, `不要手写 ${repo}，用注入的 sources`).not.toContain(repo)
+    }
+  })
 })

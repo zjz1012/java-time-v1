@@ -10,5 +10,9 @@
  */
 declare const __APP_VERSION__: string
 declare const __KERNEL_COMMIT__: string
-/** 随包游戏的款数（`total`）与其中自研的款数（`self`），其余按 MIT 授权计入。 */
-declare const __PACK_GAMES__: { readonly total: number; readonly self: number }
+/** 随包游戏的款数与来源，全部数自 `docs/provenance/games.json`。 */
+declare const __PACK_GAMES__: {
+  readonly total: number
+  readonly self: number
+  readonly sources: readonly { readonly repo: string; readonly count: number }[]
+}

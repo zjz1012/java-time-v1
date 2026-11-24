@@ -157,9 +157,7 @@ midlets/
 docs/
 ├── provenance/  来源登记、第三方声明、内核评估
 ├── decisions/   架构决策记录（ADR）
-├── architecture/ 模块与协议设计
-├── testing/     测试策略与设备矩阵
-└── releases/    版本说明
+└── architecture/ 模块与协议设计
 scripts/       构建与校验脚本（不含业务逻辑）
 tests/         单元 / 集成 / E2E / 测试固件
 ```
